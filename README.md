@@ -47,8 +47,15 @@ npm run tauri build
 ## 测试
 
 ```powershell
-npm test          # 前端单元测试（Vitest）
-cargo test        # Rust 测试
+npm test                     # 前端单元测试（Vitest）
+cargo test -p lyriclingo-core # 核心逻辑测试（不依赖 Tauri，可正常链接运行）
+```
+
+注意：本机使用 GNU 工具链，Tauri 壳层（webview2）的测试/运行需要先把
+`WebView2Loader.dll` 复制到产物目录：
+
+```powershell
+. .\scripts\prep-native-dlls.ps1
 ```
 
 ## 目录
