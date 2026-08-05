@@ -1,8 +1,42 @@
+use crate::db::{self, CreateSongInput, CreateSongResult, SongListEntry};
+use lyriclingo_core::database::Database;
+use lyriclingo_core::models::Song;
 use lyriclingo_core::providers::openai_compatible::OpenAiCompatibleClient;
 use lyriclingo_core::providers::ModelListResult;
 use lyriclingo_core::secrets;
 use serde::Serialize;
+use std::sync::Mutex;
 use std::time::Duration;
+use tauri::State;
+
+pub struct DbState(pub Mutex<Database>);
+
+#[tauri::command]
+pub fn create_song(
+    input: CreateSongInput,
+    state: State<'_, DbState>,
+) -> Result<CreateSongResult, String> {
+    let guard = state.0.lock().map_err(|_| "db lock poisoned".to_string())?;
+    db::create_song(&guard, input)
+}
+
+#[tauri::command]
+pub fn list_songs(state: State<'_, DbState>) -> Result<Vec<SongListEntry>, String> {
+    let guard = state.0.lock().map_err(|_| "db lock poisoned".to_string())?;
+    db::list_songs(&guard)
+}
+
+#[tauri::command]
+pub fn get_song(id: String, state: State<'_, DbState>) -> Result<Song, String> {
+    let guard = state.0.lock().map_err(|_| "db lock poisoned".to_string())?;
+    db::get_song(&guard, &id)
+}
+
+#[tauri::command]
+pub fn delete_song(id: String, state: State<'_, DbState>) -> Result<(), String> {
+    let guard = state.0.lock().map_err(|_| "db lock poisoned".to_string())?;
+    db::delete_song(&guard, &id)
+}
 
 #[derive(Serialize)]
 pub struct ConnectionTest {

@@ -1,4 +1,4 @@
-import { ProviderSettingsPage } from './features/settings/ProviderSettingsPage'
+import { SongLibraryPage } from './features/library/SongLibraryPage'
 
 function App() {
   return (
@@ -6,7 +6,7 @@ function App() {
       <header style={{ padding: '12px 24px', borderBottom: '1px solid #ddd' }}>
         <strong>LyricLingo Studio</strong>
       </header>
-      <ProviderSettingsPage />
+      <SongLibraryPage />
     </div>
   )
 }

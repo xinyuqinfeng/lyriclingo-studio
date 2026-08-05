@@ -14,12 +14,18 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* Paths */
+    "baseUrl": ".",
+    "paths": {
+      "@lyriclingo/contracts": ["packages/contracts/src/index.ts"]
+    },
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
+  "include": ["src", "packages/contracts/src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
