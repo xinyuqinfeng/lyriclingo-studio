@@ -4,6 +4,7 @@ use std::time::Duration;
 use url::Url;
 
 /// A minimal OpenAI-compatible client.
+#[derive(Clone)]
 pub struct OpenAiCompatibleClient {
     base_url: String,
     api_key: String,
@@ -31,7 +32,12 @@ impl OpenAiCompatibleClient {
             .map_err(|e| format!("http client: {e}"))
     }
 
-    fn normalized_base(&self) -> String {
+    /// Accessor for the API key used in request auth. Callers must never log this.
+    pub fn api_key(&self) -> &str {
+        &self.api_key
+    }
+
+    pub fn normalized_base(&self) -> String {
         let mut base = self.base_url.trim().trim_end_matches('/').to_string();
         if !base.starts_with("http://") && !base.starts_with("https://") {
             base = format!("https://{base}");

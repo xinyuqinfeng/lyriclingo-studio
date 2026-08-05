@@ -1,4 +1,5 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+pub mod analysis_cmd;
 pub mod commands;
 pub mod db;
 pub use lyriclingo_core::models;
@@ -32,6 +33,7 @@ pub fn run() {
             commands::list_songs,
             commands::get_song,
             commands::delete_song,
+            analysis_cmd::analyze_song,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

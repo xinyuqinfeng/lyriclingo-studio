@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useLibraryStore } from './library-store'
 import { NewSongDialog } from './NewSongDialog'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 export function SongLibraryPage() {
   const { songs, loading, error, loadSongs, deleteSong } = useLibraryStore()
@@ -50,9 +51,11 @@ export function SongLibraryPage() {
               }}
             >
               <div>
-                <strong>{s.title}</strong>
-                {s.artist && <span style={{ color: '#888' }}> — {s.artist}</span>}
-                <span style={{ color: '#aaa', marginLeft: 8 }}>{s.language}</span>
+                <Link to={`/song/${s.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <strong>{s.title}</strong>
+                  {s.artist && <span style={{ color: '#888' }}> — {s.artist}</span>}
+                  <span style={{ color: '#aaa', marginLeft: 8 }}>{s.language}</span>
+                </Link>
               </div>
               <button
                 onClick={() => {
