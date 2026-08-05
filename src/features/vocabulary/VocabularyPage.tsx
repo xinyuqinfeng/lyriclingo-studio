@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useVocabularyStore } from './vocabulary-store'
+import { invoke } from '@tauri-apps/api/core'
 
 const POS_LABEL: Record<string, string> = {
   noun: '名词',
@@ -100,6 +101,12 @@ export function VocabularyPage() {
                   )}
                 </td>
                 <td style={{ padding: 8 }}>
+                  <button
+                    onClick={() => invoke('enqueue_review', { vocabularyId: e.id })}
+                    style={{ padding: '2px 8px', marginRight: 6 }}
+                  >
+                    加入复习
+                  </button>
                   <button
                     onClick={() => {
                       if (confirm(`从生词本移除「${e.baseForm}」？`)) unfavorite(e.id)

@@ -3,6 +3,7 @@ import { SongLibraryPage } from './features/library/SongLibraryPage'
 import { SongDetailPage } from './features/library/SongDetailPage'
 import { LyricWorkspacePage } from './features/workspace/LyricWorkspacePage'
 import { VocabularyPage } from './features/vocabulary/VocabularyPage'
+import { ReviewPage } from './features/review/ReviewPage'
 import { ProviderSettingsPage } from './features/settings/ProviderSettingsPage'
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           <strong>LyricLingo Studio</strong>
           <Link to="/">歌曲库</Link>
           <Link to="/vocabulary">生词本</Link>
+          <Link to="/review">复习</Link>
           <Link to="/settings">模型设置</Link>
         </header>
         <Routes>
@@ -28,6 +30,7 @@ function App() {
           <Route path="/song/:id" element={<SongDetailPage />} />
           <Route path="/workspace/:id" element={<LyricWorkspacePage />} />
           <Route path="/vocabulary" element={<VocabularyPage />} />
+          <Route path="/review" element={<ReviewPage />} />
           <Route path="/settings" element={<ProviderSettingsPage />} />
         </Routes>
       </div>

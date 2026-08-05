@@ -127,6 +127,14 @@ pub fn favorite_token(
         &token_id,
         &surface,
     )
+    .map_err(|e| e.to_string())?;
+    // Auto-enqueue the vocabulary for review.
+    let vocab_id = format!("vocab-{language}-{base_form}");
+    lyriclingo_core::database::repositories::review_repository::ensure_card(
+        &guard,
+        &vocab_id,
+        "zh-to-word",
+    )
     .map_err(|e| e.to_string())
 }
 

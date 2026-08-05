@@ -2,6 +2,7 @@
 pub mod analysis_cmd;
 pub mod commands;
 pub mod db;
+pub mod review_cmd;
 pub mod vocabulary_cmd;
 pub mod workspace_cmd;
 pub use lyriclingo_core::models;
@@ -42,6 +43,10 @@ pub fn run() {
             vocabulary_cmd::favorite_token,
             vocabulary_cmd::unfavorite_vocabulary,
             vocabulary_cmd::set_vocabulary_mastered,
+            review_cmd::get_due_cards,
+            review_cmd::review_stats,
+            review_cmd::rate_card,
+            review_cmd::enqueue_review,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

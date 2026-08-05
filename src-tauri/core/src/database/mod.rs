@@ -51,7 +51,8 @@ impl Database {
 pub mod tests {
     use super::*;
     use crate::database::repositories::{
-        lyric_line_repository, song_repository, token_repository, vocabulary_repository,
+        lyric_line_repository, review_repository, song_repository, token_repository,
+        vocabulary_repository,
     };
     use crate::models::{LyricLine, PartOfSpeech, Song, SourceLanguage, Token};
 
@@ -401,5 +402,85 @@ pub mod tests {
         // With no sources and no review cards, the entry is cleaned up.
         let entry = vocabulary_repository::get(&db, &id).expect("get");
         assert!(entry.is_none(), "entry removed when no sources remain");
+    }
+
+    #[test]
+    fn review_card_scheduling_persistence() {
+        let db = test_db();
+        song_repository::insert(
+            &db,
+            &Song {
+                id: "s1".into(),
+                title: "t".into(),
+                artist: String::new(),
+                language: SourceLanguage::Ja,
+                lyrics: String::new(),
+                created_at: String::new(),
+            },
+        )
+        .expect("insert song");
+        lyric_line_repository::insert(
+            &db,
+            &LyricLine {
+                id: "l1".into(),
+                song_id: "s1".into(),
+                seq: 0,
+                text: "聞こえた".into(),
+                is_section_break: false,
+            },
+        )
+        .expect("insert line");
+        token_repository::upsert_tokens(
+            &db,
+            "l1",
+            "s1",
+            vec![Token {
+                surface: "聞こえた".into(),
+                start: 0,
+                end: 4,
+                pos: PartOfSpeech::Verb,
+                base_form: "聞こえる".into(),
+                base_reading: Some("きこえる".into()),
+                reading: None,
+                meaning: "听见".into(),
+                contextual_meaning: None,
+                conjugation: Some("過去式".into()),
+                confirmed: true,
+            }],
+        )
+        .expect("insert token");
+        vocabulary_repository::upsert_favorite(
+            &db,
+            "ja",
+            "聞こえる",
+            Some("きこえる"),
+            "听见",
+            PartOfSpeech::Verb,
+            "s1",
+            "l1",
+            "l1-0",
+            "聞こえた",
+        )
+        .expect("create vocab");
+        let now = chrono::Utc::now().to_rfc3339();
+        let card = review_repository::ReviewCard {
+            id: "card1".into(),
+            vocabulary_id: "vocab-ja-聞こえる".into(),
+            card_type: "zh-to-word".into(),
+            due_at: now.clone(),
+            interval: 1,
+            ease: 2.5,
+            step: 0,
+            last_rating: None,
+        };
+        review_repository::upsert_card(&db, "vocab-ja-聞こえる", "zh-to-word", &card).expect("insert card");
+
+        let got = review_repository::get_card(&db, "vocab-ja-聞こえる", "zh-to-word").expect("get");
+        assert!(got.is_some());
+        assert_eq!(got.unwrap().ease, 2.5);
+
+        review_repository::log_rating(&db, "card1", "good", 6, 2.5).expect("log");
+        let due = review_repository::today_due_count(&db).expect("count");
+        assert_eq!(due, 1, "due today card is counted");
     }
 }
