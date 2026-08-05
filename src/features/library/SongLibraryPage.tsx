@@ -56,6 +56,9 @@ export function SongLibraryPage() {
                   {s.artist && <span style={{ color: '#888' }}> — {s.artist}</span>}
                   <span style={{ color: '#aaa', marginLeft: 8 }}>{s.language}</span>
                 </Link>
+                <Link to={`/workspace/${s.id}`} style={{ marginLeft: 12, fontSize: 13, color: '#06c' }}>
+                  学习工作台 →
+                </Link>
               </div>
               <button
                 onClick={() => {

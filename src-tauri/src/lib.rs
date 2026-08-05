@@ -2,6 +2,7 @@
 pub mod analysis_cmd;
 pub mod commands;
 pub mod db;
+pub mod workspace_cmd;
 pub use lyriclingo_core::models;
 
 use std::sync::Mutex;
@@ -34,6 +35,7 @@ pub fn run() {
             commands::get_song,
             commands::delete_song,
             analysis_cmd::analyze_song,
+            workspace_cmd::get_song_analysis,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

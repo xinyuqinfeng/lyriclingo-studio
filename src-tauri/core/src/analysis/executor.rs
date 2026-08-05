@@ -122,13 +122,20 @@ impl AnalysisExecutor {
 }
 
 /// Processes the whole queue with limited concurrency.
-pub async fn run_queue(executor: &AnalysisExecutor, queue: &AnalysisQueue, concurrency: usize) {
+/// Completed analyses are delivered through the returned receiver.
+pub async fn run_queue(
+    executor: &AnalysisExecutor,
+    queue: &AnalysisQueue,
+    concurrency: usize,
+) -> tokio::sync::mpsc::UnboundedReceiver<(usize, LineAnalysis)> {
+    let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<(usize, LineAnalysis)>();
     let queue = queue.clone();
     let concurrency = concurrency.max(1);
     let mut handles = Vec::new();
     for _ in 0..concurrency {
         let queue = queue.clone();
         let worker = executor.clone();
+        let tx = tx.clone();
         handles.push(tokio::spawn(async move {
             loop {
                 if queue.is_cancelled() {
@@ -139,7 +146,8 @@ pub async fn run_queue(executor: &AnalysisExecutor, queue: &AnalysisQueue, concu
                     None => break,
                 };
                 match worker.analyze_line(&task.line, task.index).await {
-                    Ok(_analysis) => {
+                    Ok(analysis) => {
+                        let _ = tx.send((task.index, analysis));
                         queue.mark_success(task.index);
                     }
                     Err(e) => {
@@ -149,9 +157,11 @@ pub async fn run_queue(executor: &AnalysisExecutor, queue: &AnalysisQueue, concu
             }
         }));
     }
+    drop(tx);
     for h in handles {
         h.await.ok();
     }
+    rx
 }
 
 /// Strips auth material before surfacing to the UI/logs.
