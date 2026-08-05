@@ -9,6 +9,36 @@ pub enum SourceLanguage {
     Auto,
 }
 
+impl SourceLanguage {
+    pub fn to_str(&self) -> &'static str {
+        match self {
+            SourceLanguage::Ja => "ja",
+            SourceLanguage::En => "en",
+            SourceLanguage::Ko => "ko",
+            SourceLanguage::Auto => "auto",
+        }
+    }
+}
+
+impl std::fmt::Display for SourceLanguage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_str())
+    }
+}
+
+impl std::str::FromStr for SourceLanguage {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "ja" => Ok(SourceLanguage::Ja),
+            "en" => Ok(SourceLanguage::En),
+            "ko" => Ok(SourceLanguage::Ko),
+            "auto" => Ok(SourceLanguage::Auto),
+            other => Err(format!("unknown source language: {other}")),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum PartOfSpeech {
@@ -22,6 +52,48 @@ pub enum PartOfSpeech {
     Conjunction,
     Interjection,
     Other,
+}
+
+impl PartOfSpeech {
+    pub fn to_str(&self) -> &'static str {
+        match self {
+            PartOfSpeech::Noun => "noun",
+            PartOfSpeech::Verb => "verb",
+            PartOfSpeech::Adjective => "adjective",
+            PartOfSpeech::Adverb => "adverb",
+            PartOfSpeech::Particle => "particle",
+            PartOfSpeech::Pronoun => "pronoun",
+            PartOfSpeech::Article => "article",
+            PartOfSpeech::Conjunction => "conjunction",
+            PartOfSpeech::Interjection => "interjection",
+            PartOfSpeech::Other => "other",
+        }
+    }
+}
+
+impl std::fmt::Display for PartOfSpeech {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_str())
+    }
+}
+
+impl std::str::FromStr for PartOfSpeech {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "noun" => Ok(PartOfSpeech::Noun),
+            "verb" => Ok(PartOfSpeech::Verb),
+            "adjective" => Ok(PartOfSpeech::Adjective),
+            "adverb" => Ok(PartOfSpeech::Adverb),
+            "particle" => Ok(PartOfSpeech::Particle),
+            "pronoun" => Ok(PartOfSpeech::Pronoun),
+            "article" => Ok(PartOfSpeech::Article),
+            "conjunction" => Ok(PartOfSpeech::Conjunction),
+            "interjection" => Ok(PartOfSpeech::Interjection),
+            "other" => Ok(PartOfSpeech::Other),
+            other => Err(format!("unknown part of speech: {other}")),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

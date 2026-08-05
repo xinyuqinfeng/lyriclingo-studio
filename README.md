@@ -29,6 +29,12 @@
 . .\scripts\env.ps1
 ```
 
+> **GNU 工具链注意**：MSYS2 gcc 生成临时汇编文件时使用反斜杠路径，而 mingw64 的
+> `as.exe` 无法解析该路径（会报 `can't open ... for reading`）。项目通过
+> `.cargo/config.toml` 中的 `CFLAGS=-BD:\Rust\mingw-wrap` 注入一个 `as.exe`
+> 路径转换包装脚本（`scripts\env.ps1` 会自动创建）。若换机或换 MSYS2 目录，
+> 请同步更新该 wrapper 与 `.cargo/config.toml`。
+
 ## 开发
 
 ```powershell
