@@ -6,6 +6,7 @@ import { VocabularyPage } from './features/vocabulary/VocabularyPage'
 import { ReviewPage } from './features/review/ReviewPage'
 import { ExportPage } from './features/export/ExportPage'
 import { ProviderSettingsPage } from './features/settings/ProviderSettingsPage'
+import { DataSettingsPage } from './features/settings/DataSettingsPage'
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Link to="/vocabulary">生词本</Link>
           <Link to="/review">复习</Link>
           <Link to="/settings">模型设置</Link>
+          <Link to="/data">数据与隐私</Link>
         </header>
         <Routes>
           <Route path="/" element={<SongLibraryPage />} />
@@ -34,6 +36,7 @@ function App() {
           <Route path="/vocabulary" element={<VocabularyPage />} />
           <Route path="/review" element={<ReviewPage />} />
           <Route path="/settings" element={<ProviderSettingsPage />} />
+          <Route path="/data" element={<DataSettingsPage />} />
         </Routes>
       </div>
     </BrowserRouter>

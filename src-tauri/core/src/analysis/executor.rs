@@ -177,10 +177,7 @@ pub async fn run_queue(
 
 /// Strips auth material before surfacing to the UI/logs.
 fn sanitize(s: &str) -> String {
-    if s.contains("sk-") {
-        return "网络错误（细节已隐藏）".into();
-    }
-    s.to_string()
+    crate::logging::redact(s)
 }
 
 #[allow(dead_code)]
@@ -195,7 +192,9 @@ mod tests {
 
     #[test]
     fn sanitize_hides_keys() {
-        assert_eq!(sanitize("401 sk-test-123"), "网络错误（细节已隐藏）");
+        let out = sanitize("401 sk-test-1234567890abcdef");
+        assert!(!out.contains("sk-test-1234567890abcdef"));
+        assert!(out.contains("[REDACTED]"));
         assert_eq!(sanitize("connection reset"), "connection reset");
     }
 

@@ -64,6 +64,14 @@ cargo test -p lyriclingo-core # 核心逻辑测试（不依赖 Tauri，可正常
 . .\scripts\prep-native-dlls.ps1
 ```
 
+## 隐私与安全
+
+- 歌词会发送至**你自己配置**的模型供应商（Base URL）进行翻译与分析。
+- API Key 只保存在本机系统凭据库（Windows Credential Manager），不写入数据库、
+  日志、备份或导出文件；所有错误信息经过脱敏处理。
+- 应用不运营歌词库，不托管任何人的 API Key；歌曲与学习数据默认仅保存在本机。
+- 可在「数据与隐私」页创建本地备份、打开数据目录或清空全部学习数据。
+
 ## 目录
 
 ```
