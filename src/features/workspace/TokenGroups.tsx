@@ -13,7 +13,15 @@ const POS_LABEL: Record<string, string> = {
   other: '其他',
 }
 
-export function TokenCard({ token }: { token: WorkspaceToken }) {
+export function TokenCard({
+  token,
+  onFavorite,
+  favorited,
+}: {
+  token: WorkspaceToken
+  onFavorite: () => void
+  favorited: boolean
+}) {
   return (
     <div
       style={{
@@ -40,11 +48,34 @@ export function TokenCard({ token }: { token: WorkspaceToken }) {
       {token.contextualMeaning && token.contextualMeaning !== token.meaning && (
         <div style={{ color: '#006', fontSize: 13, marginTop: 2 }}>语境：{token.contextualMeaning}</div>
       )}
+      <button
+        onClick={onFavorite}
+        disabled={favorited}
+        style={{
+          marginTop: 8,
+          padding: '3px 10px',
+          background: favorited ? '#e6e6e6' : '#ffecb3',
+          border: '1px solid #d8a100',
+          borderRadius: 4,
+          cursor: favorited ? 'default' : 'pointer',
+          fontSize: 12,
+        }}
+      >
+        {favorited ? '已收藏 ✓' : '收藏到生词本'}
+      </button>
     </div>
   )
 }
 
-export function TokenGroups({ line }: { line: WorkspaceLine }) {
+export function TokenGroups({
+  line,
+  onFavorite,
+  favorited,
+}: {
+  line: WorkspaceLine
+  onFavorite: (token: WorkspaceToken, index: number) => void
+  favorited: (token: WorkspaceToken, index: number) => boolean
+}) {
   const groups: Record<string, WorkspaceToken[]> = {}
   for (const t of line.tokens) {
     ;(groups[t.pos] ??= []).push(t)
@@ -62,7 +93,7 @@ export function TokenGroups({ line }: { line: WorkspaceLine }) {
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {groups[pos].map((t, i) => (
-              <TokenCard key={i} token={t} />
+              <TokenCard key={i} token={t} onFavorite={() => onFavorite(t, i)} favorited={favorited(t, i)} />
             ))}
           </div>
         </div>

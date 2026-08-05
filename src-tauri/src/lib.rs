@@ -2,6 +2,7 @@
 pub mod analysis_cmd;
 pub mod commands;
 pub mod db;
+pub mod vocabulary_cmd;
 pub mod workspace_cmd;
 pub use lyriclingo_core::models;
 
@@ -36,6 +37,11 @@ pub fn run() {
             commands::delete_song,
             analysis_cmd::analyze_song,
             workspace_cmd::get_song_analysis,
+            vocabulary_cmd::list_vocabulary,
+            vocabulary_cmd::get_vocabulary,
+            vocabulary_cmd::favorite_token,
+            vocabulary_cmd::unfavorite_vocabulary,
+            vocabulary_cmd::set_vocabulary_mastered,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

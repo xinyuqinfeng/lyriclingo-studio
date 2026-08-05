@@ -194,7 +194,7 @@ pub mod tests {
         )
         .expect("fav2");
 
-        let entries = vocabulary_repository::list(&db).expect("list");
+        let entries = vocabulary_repository::list(&db, &Default::default()).expect("list");
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].base_form, "食べる");
     }
@@ -260,7 +260,7 @@ pub mod tests {
 
         song_repository::delete(&db, "s1").expect("delete song");
 
-        let entries = vocabulary_repository::list(&db).expect("list");
+        let entries = vocabulary_repository::list(&db, &Default::default()).expect("list");
         assert_eq!(entries.len(), 1, "favorited vocab survives song deletion");
     }
 
@@ -289,5 +289,117 @@ pub mod tests {
             .query_row("SELECT COUNT(*) FROM songs", [], |r| r.get(0))
             .expect("count");
         assert_eq!(count, 0, "rolled back insert must not persist");
+    }
+
+    #[test]
+    fn vocabulary_filter_and_sources() {
+        let db = test_db();
+        // Two songs, one vocabulary entry each.
+        for (sid, lid) in [("s1", "l1"), ("s2", "l2")] {
+            song_repository::insert(
+                &db,
+                &Song {
+                    id: sid.into(),
+                    title: format!("t{sid}"),
+                    artist: String::new(),
+                    language: SourceLanguage::Ja,
+                    lyrics: String::new(),
+                    created_at: String::new(),
+                },
+            )
+            .expect("insert song");
+            lyric_line_repository::insert(
+                &db,
+                &LyricLine {
+                    id: lid.into(),
+                    song_id: sid.into(),
+                    seq: 0,
+                    text: "x".into(),
+                    is_section_break: false,
+                },
+            )
+            .expect("insert line");
+            token_repository::upsert_tokens(
+                &db,
+                lid,
+                sid,
+                vec![Token {
+                    surface: "空".into(),
+                    start: 0,
+                    end: 1,
+                    pos: PartOfSpeech::Noun,
+                    base_form: "空".into(),
+                    base_reading: Some("そら".into()),
+                    reading: None,
+                    meaning: "天空".into(),
+                    contextual_meaning: None,
+                    conjugation: None,
+                    confirmed: true,
+                }],
+            )
+            .expect("insert token");
+        }
+
+        vocabulary_repository::upsert_favorite(
+            &db, "ja", "空", Some("そら"), "天空", PartOfSpeech::Noun,
+            "s1", "l1", "l1-0", "空",
+        )
+        .expect("fav1");
+        vocabulary_repository::upsert_favorite(
+            &db, "ja", "空", Some("そら"), "天空", PartOfSpeech::Noun,
+            "s2", "l2", "l2-0", "空",
+        )
+        .expect("fav2");
+
+        // Filter by language.
+        let ja = vocabulary_repository::list(
+            &db,
+            &vocabulary_repository::VocabularyFilter {
+                language: Some("ja".into()),
+                ..Default::default()
+            },
+        )
+        .expect("ja list");
+        assert_eq!(ja.len(), 1);
+
+        let en = vocabulary_repository::list(
+            &db,
+            &vocabulary_repository::VocabularyFilter {
+                language: Some("en".into()),
+                ..Default::default()
+            },
+        )
+        .expect("en list");
+        assert_eq!(en.len(), 0);
+
+        // Search by meaning.
+        let search = vocabulary_repository::list(
+            &db,
+            &vocabulary_repository::VocabularyFilter {
+                search: Some("天空".into()),
+                ..Default::default()
+            },
+        )
+        .expect("search");
+        assert_eq!(search.len(), 1);
+
+        // Sources across two songs.
+        let sources = vocabulary_repository::list_sources(&db, "vocab-ja-空").expect("sources");
+        assert_eq!(sources.len(), 2);
+        let titles: Vec<&str> = sources.iter().map(|s| s.song_title.as_str()).collect();
+        assert!(titles.contains(&"ts1"));
+        assert!(titles.contains(&"ts2"));
+
+        // Unfavorite one source removes the source but keeps the entry (other source remains).
+        let id = vocabulary_repository::list(&db, &Default::default())
+            .expect("list")[0]
+            .id
+            .clone();
+        vocabulary_repository::unfavorite(&db, &id).expect("unfavorite");
+        let remaining = vocabulary_repository::list_sources(&db, &id).expect("remaining");
+        assert_eq!(remaining.len(), 0);
+        // With no sources and no review cards, the entry is cleaned up.
+        let entry = vocabulary_repository::get(&db, &id).expect("get");
+        assert!(entry.is_none(), "entry removed when no sources remain");
     }
 }

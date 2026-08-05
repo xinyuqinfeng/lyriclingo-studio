@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import { SongLibraryPage } from './features/library/SongLibraryPage'
 import { SongDetailPage } from './features/library/SongDetailPage'
 import { LyricWorkspacePage } from './features/workspace/LyricWorkspacePage'
+import { VocabularyPage } from './features/vocabulary/VocabularyPage'
 import { ProviderSettingsPage } from './features/settings/ProviderSettingsPage'
 
 function App() {
@@ -19,12 +20,14 @@ function App() {
         >
           <strong>LyricLingo Studio</strong>
           <Link to="/">歌曲库</Link>
+          <Link to="/vocabulary">生词本</Link>
           <Link to="/settings">模型设置</Link>
         </header>
         <Routes>
           <Route path="/" element={<SongLibraryPage />} />
           <Route path="/song/:id" element={<SongDetailPage />} />
           <Route path="/workspace/:id" element={<LyricWorkspacePage />} />
+          <Route path="/vocabulary" element={<VocabularyPage />} />
           <Route path="/settings" element={<ProviderSettingsPage />} />
         </Routes>
       </div>

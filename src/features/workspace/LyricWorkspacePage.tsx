@@ -1,11 +1,14 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useWorkspaceStore } from './workspace-store'
+import type { WorkspaceToken } from './workspace-store'
 import { TokenGroups } from './TokenGroups'
+import { invoke } from '@tauri-apps/api/core'
 
 export function LyricWorkspacePage() {
   const { id } = useParams<{ id: string }>()
   const { data, selectedIndex, loading, error, load, select } = useWorkspaceStore()
+  const [favoritedKeys, setFavoritedKeys] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (id) load(id)
@@ -17,6 +20,31 @@ export function LyricWorkspacePage() {
 
   const line = data.lines[selectedIndex]
   if (!line) return <p style={{ padding: 24 }}>没有歌词行</p>
+
+  async function handleFavorite(token: WorkspaceToken, index: number) {
+    const key = `${line.line.id}-${index}`
+    if (favoritedKeys.has(key)) return
+    try {
+      await invoke('favorite_token', {
+        songId: data!.songId,
+        lineId: line.line.id,
+        tokenId: key,
+        language: data!.language,
+        baseForm: token.baseForm,
+        baseReading: token.baseReading ?? null,
+        meaning: token.meaning,
+        pos: token.pos,
+        surface: token.surface,
+      })
+      setFavoritedKeys((prev) => new Set(prev).add(key))
+    } catch (e) {
+      alert(String(e))
+    }
+  }
+
+  function isFavorited(_token: WorkspaceToken, index: number) {
+    return favoritedKeys.has(`${line.line.id}-${index}`)
+  }
 
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 60px)' }}>
@@ -97,7 +125,11 @@ export function LyricWorkspacePage() {
         {line.tokens.length === 0 ? (
           <p style={{ color: '#888' }}>还没有分析结果。请先在歌曲详情页运行分析。</p>
         ) : (
-          <TokenGroups line={line} />
+          <TokenGroups
+            line={line}
+            onFavorite={(t, i) => handleFavorite(t, i)}
+            favorited={(t, i) => isFavorited(t, i)}
+          />
         )}
       </aside>
     </div>
