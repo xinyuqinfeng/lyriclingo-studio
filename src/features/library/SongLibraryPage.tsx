@@ -59,6 +59,9 @@ export function SongLibraryPage() {
                 <Link to={`/workspace/${s.id}`} style={{ marginLeft: 12, fontSize: 13, color: '#06c' }}>
                   学习工作台 →
                 </Link>
+                <Link to={`/export/${s.id}`} style={{ marginLeft: 12, fontSize: 13, color: '#06c' }}>
+                  导出学习页 →
+                </Link>
               </div>
               <button
                 onClick={() => {

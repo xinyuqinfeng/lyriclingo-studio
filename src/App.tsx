@@ -4,6 +4,7 @@ import { SongDetailPage } from './features/library/SongDetailPage'
 import { LyricWorkspacePage } from './features/workspace/LyricWorkspacePage'
 import { VocabularyPage } from './features/vocabulary/VocabularyPage'
 import { ReviewPage } from './features/review/ReviewPage'
+import { ExportPage } from './features/export/ExportPage'
 import { ProviderSettingsPage } from './features/settings/ProviderSettingsPage'
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
           <Route path="/" element={<SongLibraryPage />} />
           <Route path="/song/:id" element={<SongDetailPage />} />
           <Route path="/workspace/:id" element={<LyricWorkspacePage />} />
+          <Route path="/export/:id" element={<ExportPage />} />
           <Route path="/vocabulary" element={<VocabularyPage />} />
           <Route path="/review" element={<ReviewPage />} />
           <Route path="/settings" element={<ProviderSettingsPage />} />
