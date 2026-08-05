@@ -117,28 +117,34 @@ impl OpenAiCompatibleClient {
     }
 
     /// Builds a chat completion request body for structured JSON output.
+    /// When `use_response_format` is false, the response_format field is
+    /// omitted (some providers reject it) and JSON is requested via the prompt.
     pub fn chat_completion_body(
         &self,
         model: &str,
         messages: Vec<(&str, &str)>,
         schema: serde_json::Value,
+        use_response_format: bool,
     ) -> serde_json::Value {
         let msgs: Vec<serde_json::Value> = messages
             .into_iter()
             .map(|(role, content)| json!({ "role": role, "content": content }))
             .collect();
-        json!({
+        let mut body = json!({
             "model": model,
             "messages": msgs,
-            "response_format": {
+        });
+        if use_response_format {
+            body["response_format"] = json!({
                 "type": "json_schema",
                 "json_schema": {
                     "name": "lyric_analysis",
                     "strict": true,
                     "schema": schema
                 }
-            }
-        })
+            });
+        }
+        body
     }
 }
 
@@ -179,10 +185,24 @@ mod tests {
             "gpt-4o",
             vec![("system", "translate"), ("user", "hello")],
             schema,
+            true,
         );
         assert_eq!(body["model"], "gpt-4o");
         assert_eq!(body["messages"][0]["role"], "system");
         assert_eq!(body["response_format"]["type"], "json_schema");
+    }
+
+    #[test]
+    fn chat_completion_body_omits_response_format_when_disabled() {
+        let client = OpenAiCompatibleClient::new("http://example.test", "sk-test");
+        let schema = json!({ "type": "object" });
+        let body = client.chat_completion_body(
+            "gpt-4o",
+            vec![("system", "translate")],
+            schema,
+            false,
+        );
+        assert!(body.get("response_format").is_none());
     }
 
     #[test]

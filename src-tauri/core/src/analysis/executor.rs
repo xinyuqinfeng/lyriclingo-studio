@@ -44,30 +44,41 @@ impl AnalysisExecutor {
     }
 
     /// Analyzes a single line, calling the model (with retry on transient errors).
+    /// If the provider rejects response_format (400), retries once without it.
     pub async fn analyze_line(&self, line: &str, line_index: usize) -> Result<LineAnalysis, String> {
         let sys = system_prompt(&self.context);
         let usr = user_prompt(line);
         let schema = analysis_json_schema();
-        let body = self
-            .client
-            .chat_completion_body(&self.model, vec![("system", &sys), ("user", &usr)], schema);
 
+        let mut use_response_format = true;
         let mut attempt = 0;
         loop {
             attempt += 1;
-            match self.call_chat(body.clone()).await {
+            let body = self.client.chat_completion_body(
+                &self.model,
+                vec![("system", &sys), ("user", &usr)],
+                schema.clone(),
+                use_response_format,
+            );
+            match self.call_chat(body).await {
                 Ok(raw) => match validate_line_analysis(&raw) {
-                    Ok(analysis) if analysis.line_index == line_index as u32 => return Ok(analysis),
-                    Ok(_) => return Err(format!("lineIndex 不匹配，期望 {line_index}")),
+                    // The requested line index is authoritative; the model may
+                    // miscount its own lineIndex, so override it.
+                    Ok(mut analysis) => {
+                        analysis.line_index = line_index as u32;
+                        return Ok(analysis);
+                    }
                     Err(e) if attempt > self.max_retries => return Err(e),
                     Err(_) => {
                         tokio::time::sleep(Duration::from_millis(500 * attempt as u64)).await;
                     }
                 },
-                Err(e) => {
-                    if attempt > self.max_retries {
-                        return Err(e);
-                    }
+                Err(e) if e.contains("response_format") && use_response_format => {
+                    // Provider rejects structured output; fall back to prompt-only JSON.
+                    use_response_format = false;
+                }
+                Err(e) if attempt > self.max_retries => return Err(e),
+                Err(_) => {
                     let wait = Duration::from_millis(1000 * (2_u64.pow(attempt - 1)));
                     tokio::time::sleep(wait).await;
                 }

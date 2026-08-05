@@ -68,7 +68,7 @@ pub async fn analyze_song(
         .collect();
     let queue = AnalysisQueue::new(lines_only);
 
-    let mut rx = lyriclingo_core::analysis::executor::run_queue(&executor, &queue, 2).await;
+    let mut rx = lyriclingo_core::analysis::executor::run_queue(&executor, &queue, 1).await;
 
     // Drain results and persist them under a short lock per batch.
     while let Ok((index, analysis)) = rx.try_recv() {
