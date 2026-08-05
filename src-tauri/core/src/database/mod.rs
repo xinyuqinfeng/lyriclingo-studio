@@ -123,7 +123,7 @@ pub mod tests {
     #[test]
     fn vocabulary_dedupes_by_language_and_base_form() {
         let db = test_db();
-        for (sid, lid, tid) in [("s1", "l1", "t1"), ("s2", "l2", "t2")] {
+        for (sid, lid) in [("s1", "l1"), ("s2", "l2")] {
             song_repository::insert(
                 &db,
                 &Song {
