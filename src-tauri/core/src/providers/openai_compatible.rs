@@ -74,7 +74,7 @@ impl OpenAiCompatibleClient {
                 let parsed_body: ModelListResponse = match resp.json().await {
                     Ok(b) => b,
                     Err(e) => {
-                        last_err = Some(format!("non-json response: {e}"));
+                        last_err = Some(format!("解析模型列表失败（响应字段不匹配）: {e}"));
                         continue;
                     }
                 };
@@ -175,6 +175,21 @@ mod tests {
         let parsed: ModelListResponse = serde_json::from_value(body).expect("parse");
         assert_eq!(parsed.data.len(), 2);
         assert_eq!(parsed.data[0].id, "gpt-4o");
+    }
+
+    #[test]
+    fn parses_response_without_object_field() {
+        // Some providers (e.g. edgefn) return {"data":[...]} without the
+        // top-level "object" field that OpenAI includes.
+        let body = json!({
+            "data": [
+                { "id": "DeepSeek-V4-Flash-0731", "owned_by": "custom" }
+            ]
+        });
+        let parsed: ModelListResponse = serde_json::from_value(body).expect("parse");
+        assert_eq!(parsed.data.len(), 1);
+        assert_eq!(parsed.data[0].id, "DeepSeek-V4-Flash-0731");
+        assert!(parsed.object.is_none());
     }
 
     #[test]

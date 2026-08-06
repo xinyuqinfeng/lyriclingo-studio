@@ -32,7 +32,8 @@ pub struct ConnectionTestResult {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelListResponse {
-    pub object: String,
+    #[serde(default)]
+    pub object: Option<String>,
     pub data: Vec<ModelListApiModel>,
 }
 
