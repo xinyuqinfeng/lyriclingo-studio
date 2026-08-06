@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useLibraryStore } from './library-store'
 import { NewSongDialog } from './NewSongDialog'
 import { SongStatus } from '../../components/ui'
@@ -10,6 +10,7 @@ import type { LyricPair } from '../lyrics/import/prepare-lyrics'
 export function SongLibraryPage() {
   const { songs, loading, error, loadSongs, deleteSong, updateStatus } = useLibraryStore()
   const [showNew, setShowNew] = useState(false)
+  const location = useLocation()
   const loadActiveProvider = useProviderStore((s) => s.loadActiveProvider)
   const providerId = useProviderStore((s) => s.providerId)
   const baseUrl = useProviderStore((s) => s.baseUrl)
@@ -20,6 +21,12 @@ export function SongLibraryPage() {
     loadSongs()
     loadActiveProvider()
   }, [loadSongs, loadActiveProvider])
+
+  // Reload whenever this route is mounted or re-entered (e.g. returning from a
+  // song detail page after analysis). The `location` dep makes re-entry reload.
+  useEffect(() => {
+    loadSongs()
+  }, [location, loadSongs])
 
   // Poll status while any song is analyzing.
   useEffect(() => {

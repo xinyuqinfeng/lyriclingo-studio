@@ -411,6 +411,19 @@ textarea {
   transition: transform 0.3s ease;
 }
 
+/* Ruby (furigana) alignment */
+ruby {
+  ruby-align: center;
+  ruby-position: over;
+  -webkit-ruby-align: center;
+}
+
+ruby rt {
+  font-size: 0.45em;
+  line-height: 1;
+  font-weight: 400;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
