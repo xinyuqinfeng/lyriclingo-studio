@@ -46,19 +46,26 @@ pub fn system_prompt(context: &AnalysisContext) -> String {
     )
 }
 
-/// Builds the user prompt containing the full pasted lyrics.
-pub fn user_prompt_full(lyrics: &str) -> String {
+/// Builds the user prompt containing all (source, optional reference) pairs.
+/// Asks the model to analyze ALL source lines in ONE response array.
+pub fn user_prompt_pairs(pairs: &[(String, Option<String>)]) -> String {
+    let mut numbered = String::new();
+    for (i, (source, reference)) in pairs.iter().enumerate() {
+        numbered.push_str(&format!("{}. {}\n", i + 1, source));
+        if let Some(r) = reference {
+            numbered.push_str(&format!("   （参考译文：{r}）\n"));
+        }
+    }
     format!(
-        "请分析下面这段歌词，按 JSON Schema 输出一个数组。数组的每个元素对应一个**源语言歌词行**\
-（忽略元信息行和中文翻译行）。若歌词为纯源语言，数组应包含每个非空歌词行；\
-若为混合格式，只包含源语言行（不含中文翻译行）。\
-\n\n歌词内容：\n```\n{lyrics}\n```\n\n\
-每个元素字段：lineIndex(该行在源语言歌词中的顺序，从0开始)、\
-**originalLine(该歌词行的原文，必须与输入歌词中的某一行完全一致)**、\
-translation(自然中文)、readingText(带注音的显示文本)、\
-tokens(数组，每项含 surface/start/end/pos/baseForm/baseReading/reading/meaning/\
-contextualMeaning/conjugation/confirmed)、grammarNotes、uncertainty。\
-\n词性 pos 取值为: noun, verb, adjective, adverb, particle, pronoun, article, conjunction, interjection, other。"
+        "请分析下面所有源语言歌词行，按 JSON Schema 输出**一个数组**。\
+数组的每个元素对应一行歌词，**数组长度必须与下面的歌词行数完全一致（{} 行），顺序一一对应**。\
+\n\n歌词：\n{numbered}\n\
+每个元素字段：lineIndex(从0开始)、originalLine(该行原文)、translation(自然中文)、\
+readingText(带注音的显示文本)、tokens(数组，每项含 surface/start/end/pos/baseForm/\
+baseReading/reading/meaning/contextualMeaning/conjugation/confirmed)、grammarNotes、uncertainty。\
+\n词性 pos 取值为: noun, verb, adjective, adverb, particle, pronoun, article, conjunction, interjection, other。\
+\n标注的参考译文仅作参考，请判断是否采用或优化。",
+        pairs.len()
     )
 }
 
@@ -152,10 +159,16 @@ mod tests {
     }
 
     #[test]
-    fn user_prompt_passes_full_lyrics() {
-        let p = user_prompt_full("星が降る夜に\n在星星坠落的夜晚");
+    fn user_prompt_includes_pairs_and_mentions_one_array() {
+        let pairs = vec![
+            ("星が降る夜に".to_string(), Some("在星星坠落的夜晚".to_string())),
+            ("走り出そう".to_string(), None),
+        ];
+        let p = user_prompt_pairs(&pairs);
         assert!(p.contains("星が降る夜に"));
         assert!(p.contains("在星星坠落的夜晚"));
-        assert!(p.contains("数组"));
+        assert!(p.contains("参考译文"));
+        assert!(p.contains("一个数组"));
+        assert!(p.contains("2 行"));
     }
 }

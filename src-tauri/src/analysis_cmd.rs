@@ -67,7 +67,7 @@ pub async fn analyze_song(
         .iter()
         .map(|p| (p.source.clone(), p.reference_translation.clone()))
         .collect();
-    let analyses = executor.analyze_pairs(&pair_input).await?;
+    let analyses = executor.analyze_full(&pair_input).await?;
 
     // Map each analysis back to a DB line by its seq.
     let mut progress: Vec<LineProgress> = Vec::new();

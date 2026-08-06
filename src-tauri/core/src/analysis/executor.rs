@@ -1,5 +1,5 @@
 use crate::analysis::prompt::{
-    analysis_json_schema, system_prompt, user_prompt_full, user_prompt_pair, AnalysisContext,
+    analysis_json_schema, system_prompt, user_prompt_pairs, AnalysisContext,
 };
 use crate::analysis::response_validation::validate_line_analysis_array;
 use crate::models::LineAnalysis;
@@ -9,6 +9,7 @@ use std::time::Duration;
 
 pub struct AnalysisExecutor {
     client: OpenAiCompatibleClient,
+    http: reqwest::Client,
     model: String,
     context: AnalysisContext,
     max_retries: u32,
@@ -18,6 +19,7 @@ impl Clone for AnalysisExecutor {
     fn clone(&self) -> Self {
         Self {
             client: self.client.clone(),
+            http: self.http.clone(),
             model: self.model.clone(),
             context: AnalysisContext {
                 language: self.context.language,
@@ -36,24 +38,29 @@ impl AnalysisExecutor {
         model: impl Into<String>,
         context: AnalysisContext,
     ) -> Self {
+        let http = reqwest::Client::builder()
+            .timeout(Duration::from_secs(300))
+            .pool_idle_timeout(Duration::from_secs(90))
+            .build()
+            .expect("http client");
         Self {
             client: OpenAiCompatibleClient::new(base_url, api_key),
+            http,
             model: model.into(),
             context,
             max_retries: 2,
         }
     }
 
-    /// Analyzes the whole pasted lyrics in one call.
-    /// The model identifies source-language lines itself (handles pure or
-    /// bilingual/mixed formats) and returns an array of LineAnalysis.
-    /// Response format is disabled by default: several popular providers
-    /// reject `response_format` (either with a 400 or by resetting the TLS
-    /// connection), so we rely on prompt-constrained JSON instead.
-    #[allow(dead_code)]
-    pub async fn analyze_full_lyrics(&self, lyrics: &str) -> Result<Vec<LineAnalysis>, String> {
+    /// Analyzes all (source, optional reference) lines in a SINGLE request.
+    /// The model returns an array of LineAnalysis, one per source line.
+    /// This is much faster than one request per line.
+    pub async fn analyze_full(
+        &self,
+        pairs: &[(String, Option<String>)],
+    ) -> Result<Vec<LineAnalysis>, String> {
         let sys = system_prompt(&self.context);
-        let usr = user_prompt_full(lyrics);
+        let usr = user_prompt_pairs(pairs);
         let schema = analysis_json_schema();
 
         let mut use_response_format = false;
@@ -68,7 +75,17 @@ impl AnalysisExecutor {
             );
             match self.call_chat(body).await {
                 Ok(raw) => match validate_line_analysis_array(&raw) {
-                    Ok(list) => return Ok(list),
+                    Ok(list) if list.len() == pairs.len() => {
+                        // Match each analysis to its source line position by order.
+                        return Ok(list);
+                    }
+                    Ok(list) => {
+                        return Err(format!(
+                            "模型返回 {} 行分析，期望 {} 行（可能遗漏了部分歌词）",
+                            list.len(),
+                            pairs.len()
+                        ));
+                    }
                     Err(e) if attempt > self.max_retries => return Err(e),
                     Err(_) => {
                         tokio::time::sleep(Duration::from_millis(500 * attempt as u64)).await;
@@ -86,64 +103,12 @@ impl AnalysisExecutor {
         }
     }
 
-    /// Analyzes each (source, optional reference) pair one at a time.
-    /// This is faster and more reliable than one giant request, and lets the
-    /// model use the pasted bilingual reference translation.
-    pub async fn analyze_pairs(
-        &self,
-        pairs: &[(String, Option<String>)],
-    ) -> Result<Vec<LineAnalysis>, String> {
-        let sys = system_prompt(&self.context);
-        let schema = analysis_json_schema();
-        let mut results = Vec::with_capacity(pairs.len());
-
-        for (source, reference) in pairs {
-            let usr = user_prompt_pair(source, reference.as_deref());
-            let mut use_response_format = false;
-            let mut attempt = 0;
-            let out = loop {
-                attempt += 1;
-                let body = self.client.chat_completion_body(
-                    &self.model,
-                    vec![("system", &sys), ("user", &usr)],
-                    schema.clone(),
-                    use_response_format,
-                );
-                match self.call_chat(body).await {
-                    Ok(raw) => match validate_line_analysis_array(&raw) {
-                        Ok(list) if !list.is_empty() => break Ok(list.into_iter().next().unwrap()),
-                        Ok(_) => {
-                            tokio::time::sleep(Duration::from_millis(500 * attempt as u64)).await;
-                        }
-                        Err(e) if attempt > self.max_retries => break Err(e),
-                        Err(_) => {
-                            tokio::time::sleep(Duration::from_millis(500 * attempt as u64)).await;
-                        }
-                    },
-                    Err(e) if use_response_format && should_disable_response_format(&e) => {
-                        use_response_format = false;
-                    }
-                    Err(e) if attempt > self.max_retries => break Err(e),
-                    Err(_) => {
-                        let wait = Duration::from_millis(1000 * (2_u64.pow(attempt - 1)));
-                        tokio::time::sleep(wait).await;
-                    }
-                }
-            };
-            results.push(out?);
-        }
-        Ok(results)
-    }
-
     async fn call_chat(&self, body: serde_json::Value) -> Result<serde_json::Value, String> {
         let base = self.client.normalized_base();
         let url = format!("{base}/chat/completions");
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(180))
-            .build()
-            .map_err(|e| format!("http client: {e}"))?;
 
-        let resp = client
+        let resp = self
+            .http
             .post(&url)
             .bearer_auth(&self.client_api_key())
             .json(&body)
