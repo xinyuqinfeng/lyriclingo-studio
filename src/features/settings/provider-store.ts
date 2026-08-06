@@ -48,6 +48,7 @@ interface ProviderState {
   setBaseUrl: (v: string) => void
   setApiKey: (v: string) => void
   setModel: (v: string) => void
+  loadKeyIfNeeded: () => Promise<void>
   testConnection: () => Promise<void>
   listModels: () => Promise<void>
   saveProvider: () => Promise<void>
@@ -77,6 +78,19 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
   setModel: (v) => set({ model: v }),
   clearLastError: () => set({ lastError: null, testResult: null, revealedKey: null }),
 
+  // Loads the saved key from the OS credential store when needed (e.g. a
+  // selected provider whose key field was left blank on the form).
+  loadKeyIfNeeded: async () => {
+    const { apiKey, providerId } = get()
+    if (apiKey.trim() || !providerId) return
+    try {
+      const key = await invoke<string>('get_provider_key', { providerId })
+      set({ apiKey: key })
+    } catch {
+      // ignore; testConnection will surface the real error
+    }
+  },
+
   selectProvider: (id) => {
     if (!id) {
       set({ providerId: null, name: '', baseUrl: '', apiKey: '', model: '', models: [], revealedKey: null })
@@ -90,6 +104,7 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
   },
 
   testConnection: async () => {
+    await get().loadKeyIfNeeded()
     const { baseUrl, apiKey } = get()
     set({ testing: true, lastError: null, testResult: null })
     try {
@@ -109,6 +124,7 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
   },
 
   listModels: async () => {
+    await get().loadKeyIfNeeded()
     const { baseUrl, apiKey } = get()
     try {
       const result = await invoke<ModelListResult>('list_models', { baseUrl, apiKey })
