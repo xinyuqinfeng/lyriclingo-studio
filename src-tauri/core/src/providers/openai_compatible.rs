@@ -193,7 +193,7 @@ mod tests {
 
     #[test]
     fn parses_response_without_object_field() {
-        // Some providers (e.g. edgefn) return {"data":[...]} without the
+        // Some OpenAI-compatible providers return {"data":[...]} without the
         // top-level "object" field that OpenAI includes.
         let body = json!({
             "data": [

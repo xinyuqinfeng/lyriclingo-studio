@@ -1,0 +1,3 @@
+[target.x86_64-pc-windows-gnu]
+# Use the toolchain-bundled lld for the GNU target. MSVC builds are unaffected.
+linker = "rust-lld"

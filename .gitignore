@@ -15,6 +15,10 @@ dist-ssr
 # Rust / Tauri
 src-tauri/target
 
+# Local distribution binaries (not committed to the repo)
+release-portable/
+*.exe
+
 # Database & secrets
 *.db
 *.db-shm
