@@ -26,9 +26,9 @@ mod tests {
 
     #[test]
     fn redacts_openai_style_keys() {
-        let s = "error: 401 sk-REDACTEDPLACEHOLDER1234567890abcdef failed";
+        let s = "error: 401 sk-abcdef1234567890abcdef1234567890abcdef1234567890 failed";
         let out = redact(s);
-        assert!(!out.contains("sk-51048c4"));
+        assert!(!out.contains("sk-abcdef1234567890abcdef1234567890abcdef1234567890"));
         assert!(out.contains("[REDACTED]"));
     }
 
