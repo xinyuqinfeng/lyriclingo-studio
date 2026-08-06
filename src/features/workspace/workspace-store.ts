@@ -9,6 +9,7 @@ export interface WorkspaceToken {
   baseForm: string
   baseReading?: string | null
   reading?: string | null
+  readings?: string[] | null
   meaning: string
   contextualMeaning?: string | null
   conjugation?: string | null

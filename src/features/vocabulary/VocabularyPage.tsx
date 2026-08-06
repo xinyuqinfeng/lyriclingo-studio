@@ -24,19 +24,21 @@ export function VocabularyPage() {
   }, [load])
 
   return (
-    <div style={{ maxWidth: 860, margin: '0 auto', padding: 24 }}>
+    <div className="page">
       <h1>生词本</h1>
+      <p className="page-sub">收藏的单词会自动汇总到这里</p>
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div className="glass-panel" style={{ padding: 14, marginBottom: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         <input
+          className="input"
           placeholder="搜索词或释义…"
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-          style={{ padding: 8, flex: 1, minWidth: 200 }}
+          style={{ flex: 1, minWidth: 180 }}
         />
         <select
+          className="input"
           value={filters.pos ?? ''}
           onChange={(e) => setFilters({ ...filters, pos: e.target.value || undefined })}
-          style={{ padding: 8 }}
         >
           <option value="">全部词性</option>
           {Object.entries(POS_LABEL).map(([k, v]) => (
@@ -46,12 +48,12 @@ export function VocabularyPage() {
           ))}
         </select>
         <select
+          className="input"
           value={filters.mastered === undefined ? '' : filters.mastered ? 'mastered' : 'not'}
           onChange={(e) => {
             const v = e.target.value
             setFilters({ ...filters, mastered: v === '' ? undefined : v === 'mastered' })
           }}
-          style={{ padding: 8 }}
         >
           <option value="">全部状态</option>
           <option value="not">未掌握</option>
@@ -70,9 +72,9 @@ export function VocabularyPage() {
       ) : entries.length === 0 ? (
         <p style={{ color: '#888' }}>暂无生词。在歌词工作台中点击「收藏」可加入生词本。</p>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table className="glass-panel" style={{ width: '100%', borderCollapse: 'collapse', padding: 8 }}>
           <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '2px solid #ddd' }}>
+            <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border-soft)' }}>
               <th style={{ padding: 8 }}>词</th>
               <th style={{ padding: 8 }}>词性</th>
               <th style={{ padding: 8 }}>释义</th>
@@ -82,7 +84,7 @@ export function VocabularyPage() {
           </thead>
           <tbody>
             {entries.map((e) => (
-              <tr key={e.id} style={{ borderBottom: '1px solid #eee' }}>
+              <tr key={e.id} style={{ borderBottom: '1px solid var(--border-soft)' }}>
                 <td style={{ padding: 8 }}>
                   <strong>{e.baseForm}</strong>
                   {e.baseReading && (
@@ -93,25 +95,27 @@ export function VocabularyPage() {
                 <td style={{ padding: 8 }}>{e.meaning}</td>
                 <td style={{ padding: 8 }}>
                   {e.mastered ? (
-                    <span style={{ color: '#060' }}>已掌握</span>
+                    <span style={{ color: 'var(--success)' }}>已掌握</span>
                   ) : (
-                    <button onClick={() => setMastered(e.id, true)} style={{ padding: '2px 8px' }}>
+                    <button className="btn btn-ghost" style={{ padding: '3px 10px', fontSize: 13 }} onClick={() => setMastered(e.id, true)}>
                       标记掌握
                     </button>
                   )}
                 </td>
                 <td style={{ padding: 8 }}>
                   <button
+                    className="btn btn-ghost"
+                    style={{ padding: '3px 10px', fontSize: 13, marginRight: 6 }}
                     onClick={() => invoke('enqueue_review', { vocabularyId: e.id })}
-                    style={{ padding: '2px 8px', marginRight: 6 }}
                   >
                     加入复习
                   </button>
                   <button
+                    className="btn btn-danger"
+                    style={{ padding: '3px 10px', fontSize: 13 }}
                     onClick={() => {
                       if (confirm(`从生词本移除「${e.baseForm}」？`)) unfavorite(e.id)
                     }}
-                    style={{ padding: '2px 8px', color: '#c00' }}
                   >
                     移除
                   </button>

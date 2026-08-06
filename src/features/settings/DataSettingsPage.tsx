@@ -47,12 +47,15 @@ export function DataSettingsPage() {
   }
 
   return (
-    <div style={{ maxWidth: 640, margin: '0 auto', padding: 24 }}>
+    <div className="page">
       <h1>数据与隐私</h1>
+      <p className="page-sub">管理本地学习数据、备份与隐私设置</p>
 
-      <section style={{ marginBottom: 24 }}>
-        <h3>数据统计</h3>
-        <button onClick={loadStats}>刷新统计</button>
+      <section className="glass-panel" style={{ padding: 20, marginBottom: 16 }}>
+        <h3 style={{ marginTop: 0 }}>数据统计</h3>
+        <button className="btn btn-ghost" onClick={loadStats}>
+          刷新统计
+        </button>
         {stats && (
           <ul>
             <li>歌曲：{stats.songs}</li>
@@ -62,30 +65,32 @@ export function DataSettingsPage() {
         )}
       </section>
 
-      <section style={{ marginBottom: 24 }}>
-        <h3>备份与恢复</h3>
-        <p style={{ color: '#666', fontSize: 13 }}>
+      <section className="glass-panel" style={{ padding: 20, marginBottom: 16 }}>
+        <h3 style={{ marginTop: 0 }}>备份与恢复</h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
           备份将复制本地数据库文件到应用数据目录（含时间戳）。
         </p>
-        <button onClick={backup}>创建备份</button>
-        <button onClick={() => invoke('open_data_dir')} style={{ marginLeft: 8 }}>
+        <button className="btn" onClick={backup}>
+          创建备份
+        </button>
+        <button className="btn btn-ghost" onClick={() => invoke('open_data_dir')} style={{ marginLeft: 8 }}>
           打开数据目录
         </button>
       </section>
 
-      <section style={{ marginBottom: 24 }}>
-        <h3>危险操作</h3>
-        <button onClick={deleteAll} style={{ color: '#c00' }}>
+      <section className="glass-panel" style={{ padding: 20, marginBottom: 16 }}>
+        <h3 style={{ marginTop: 0 }}>危险操作</h3>
+        <button className="btn btn-danger" onClick={deleteAll}>
           删除全部学习数据
         </button>
       </section>
 
-      {message && <div style={{ color: '#060', background: '#dfd', padding: 8, borderRadius: 4 }}>{message}</div>}
-      {error && <div style={{ color: '#c00', background: '#fdd', padding: 8, borderRadius: 4 }}>{error}</div>}
+      {message && <div className="notice notice-ok">{message}</div>}
+      {error && <div className="notice notice-err">{error}</div>}
 
-      <section style={{ marginTop: 24, background: '#fafafa', border: '1px solid #eee', borderRadius: 8, padding: 16 }}>
-        <h3>隐私说明</h3>
-        <ul style={{ fontSize: 13, lineHeight: 1.8, color: '#444' }}>
+      <section className="glass-panel" style={{ padding: 20 }}>
+        <h3 style={{ marginTop: 0 }}>隐私说明</h3>
+        <ul style={{ fontSize: 13, lineHeight: 1.8, color: 'var(--text-secondary)' }}>
           <li>你输入的歌词会发送至你自己配置的模型供应商（你提供的 Base URL）进行翻译与分析。</li>
           <li>API Key 只保存在本机系统凭据库，不写入数据库、日志、备份或导出文件。</li>
           <li>应用不运营歌词库，不托管任何人的 API Key。</li>

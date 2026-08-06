@@ -9,6 +9,7 @@ export const TokenSchema = z.object({
   baseForm: z.string().min(1),
   baseReading: z.string().optional(),
   reading: z.string().optional(),
+  readings: z.array(z.string()).optional(),
   meaning: z.string().min(1),
   contextualMeaning: z.string().optional(),
   conjugation: z.string().optional(),

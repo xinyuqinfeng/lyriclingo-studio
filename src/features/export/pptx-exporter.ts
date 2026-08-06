@@ -1,11 +1,25 @@
 import PptxGenJS from 'pptxgenjs'
-import { computeLayout } from './layout'
 import { POS_COLORS, POS_LABELS } from './lesson-slide'
 import type { LessonSlideLineInput } from './lesson-slide'
 
+/** Orbit position for a card around the central card (slide is 10 x 5.625 in). */
+function orbitPos(i: number): { x: number; y: number } {
+  const spots = [
+    { x: 0.5, y: 0.6 },
+    { x: 7.3, y: 0.6 },
+    { x: 0.5, y: 3.9 },
+    { x: 7.3, y: 3.9 },
+    { x: 3.6, y: 0.25 },
+    { x: 3.6, y: 4.4 },
+    { x: 0.5, y: 2.2 },
+    { x: 7.3, y: 2.2 },
+  ]
+  return spots[i % spots.length]
+}
+
 /**
  * Exports lesson slides to a PPTX using PptxGenJS.
- * The PPTX uses native text boxes / shapes (editable), not rendered images.
+ * Layout: a central lyric card with orbiting word cards (editable shapes/text).
  */
 export async function exportToPptx(opts: {
   songTitle: string
@@ -22,102 +36,78 @@ export async function exportToPptx(opts: {
   pptx.layout = 'LYRIC_16x9'
   pptx.author = 'LyricLingo Studio'
 
-  // Map abstract layout units (1280x720) to inches (10 x 5.625).
-  const sx = 10 / 1280
-  const sy = 5.625 / 720
-
   for (let i = 0; i < opts.lines.length; i++) {
     const line = opts.lines[i]
     const page = pptx.addSlide()
-    const layout = computeLayout(line.tokens, {
-      hasReading: !!line.readingText,
-      showTitle: opts.showTitle,
-      showConjugation: opts.showConjugation,
-      showReading: opts.showReading,
-    })
+
+    // Warm cream background.
+    page.background = { color: 'F7F5F0' }
 
     if (opts.showTitle) {
-      const r = layout.titleRect
       page.addText(
-        `${opts.songTitle}${opts.artist ? ` — ${opts.artist}` : ''}`,
-        { x: r.x * sx, y: r.y * sy, w: r.width * sx, h: r.height * sy, fontSize: 16, bold: true },
+        `${opts.songTitle}${opts.artist ? `  ${opts.artist}` : ''}`,
+        { x: 2, y: 0.1, w: 6, h: 0.4, fontSize: 14, bold: true, color: '5A5449', align: 'center' },
       )
     }
 
-    // Lyric (center)
-    page.addText(line.text, {
-      x: layout.lyricRect.x * sx,
-      y: layout.lyricRect.y * sy,
-      w: layout.lyricRect.width * sx,
-      h: layout.lyricRect.height * sy,
-      fontSize: 24,
-      bold: true,
-      align: 'center',
-      valign: 'middle',
+    // Central card.
+    const cx = 2.8
+    const cy = 1.1
+    const cw = 4.4
+    const ch = 3.4
+    page.addShape('roundRect', {
+      x: cx, y: cy, w: cw, h: ch,
+      fill: { color: 'FFFFFF' },
+      rectRadius: 0.12,
+      line: { color: 'E6E2D8', width: 1 },
+      shadow: { type: 'outer', blur: 8, offset: 3, angle: 90, color: '000000', opacity: 0.15 },
     })
-
-    // Reading
-    if (line.readingText && layout.readingRect.height > 0) {
+    // Lyric.
+    page.addText(line.text, {
+      x: cx + 0.2, y: cy + 0.6, w: cw - 0.4, h: 1.4,
+      fontSize: 20, bold: true, color: '3C3831', align: 'center', valign: 'middle',
+    })
+    // Reading.
+    if (line.readingText && opts.showReading) {
       page.addText(line.readingText, {
-        x: layout.readingRect.x * sx,
-        y: layout.readingRect.y * sy,
-        w: layout.readingRect.width * sx,
-        h: layout.readingRect.height * sy,
-        fontSize: 12,
-        color: '888888',
-        align: 'center',
-        valign: 'middle',
+        x: cx + 0.2, y: cy + 2.0, w: cw - 0.4, h: 0.4,
+        fontSize: 10, color: 'A0988B', align: 'center',
       })
     }
-
-    // Translation
+    // Translation.
     page.addText(line.translation, {
-      x: layout.translationRect.x * sx,
-      y: layout.translationRect.y * sy,
-      w: layout.translationRect.width * sx,
-      h: layout.translationRect.height * sy,
-      fontSize: 16,
-      color: '333333',
-      align: 'center',
-      valign: 'middle',
+      x: cx + 0.3, y: cy + 2.55, w: cw - 0.6, h: 0.6,
+      fontSize: 12, color: '6B6559', align: 'center', valign: 'middle',
     })
 
-    // Token cards
-    for (const { token, rect } of layout.tokenRects) {
-      const bg = (POS_COLORS[token.pos] ?? '#eeeeee').replace('#', '')
+    // Orbiting word cards (max 8).
+    const cardTokens = line.tokens.slice(0, 8)
+    cardTokens.forEach((token, idx) => {
+      const p = orbitPos(idx)
+      const w = 2.2
+      const h = 1.0
+      const bg = (POS_COLORS[token.pos] ?? '#ffffff').replace('#', '')
       page.addShape('roundRect', {
-        x: rect.x * sx,
-        y: rect.y * sy,
-        w: rect.width * sx,
-        h: rect.height * sy,
+        x: p.x, y: p.y, w, h,
         fill: { color: bg },
-        rectRadius: 0.05,
-        line: { color: token.confirmed ? 'CCCCCC' : 'E8A100', width: 1 },
+        rectRadius: 0.06,
+        line: { color: token.confirmed ? 'E0DBD0' : 'E8A100', width: 1 },
+        shadow: { type: 'outer', blur: 4, offset: 2, angle: 90, color: '000000', opacity: 0.12 },
       })
       page.addText(
-        `${token.surface}${POS_LABELS[token.pos] ? `  [${POS_LABELS[token.pos]}]` : ''}\n` +
+        `${token.surface}${POS_LABELS[token.pos] ? `  ${POS_LABELS[token.pos]}` : ''}\n` +
           `${token.baseForm}${opts.showConjugation && token.conjugation ? ` (${token.conjugation})` : ''}\n` +
           `${token.meaning}`,
         {
-          x: rect.x * sx + 0.08,
-          y: rect.y * sy + 0.06,
-          w: (rect.width - 16) * sx,
-          h: (rect.height - 12) * sy,
-          fontSize: 9,
-          valign: 'top',
+          x: p.x + 0.08, y: p.y + 0.05, w: w - 0.16, h: h - 0.1,
+          fontSize: 8, valign: 'top',
         },
       )
-    }
+    })
 
     if (opts.showPageNumber) {
       page.addText(`${i + 1} / ${opts.lines.length}`, {
-        x: 8.8,
-        y: 5.25,
-        w: 1,
-        h: 0.3,
-        fontSize: 8,
-        color: 'AAAAAA',
-        align: 'right',
+        x: 8.6, y: 5.15, w: 1.2, h: 0.3, fontSize: 8, color: 'B5AEA0', align: 'right',
       })
     }
   }

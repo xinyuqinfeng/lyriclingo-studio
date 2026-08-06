@@ -6,6 +6,8 @@ export interface SongListEntry {
   title: string
   artist: string
   language: string
+  analysisStatus?: string | null
+  analysisError?: string | null
   createdAt: string
 }
 
@@ -15,6 +17,7 @@ interface LibraryState {
   error: string | null
   loadSongs: () => Promise<void>
   deleteSong: (id: string) => Promise<void>
+  updateStatus: (id: string, status: string, error?: string | null) => void
 }
 
 export const useLibraryStore = create<LibraryState>((set, get) => ({
@@ -39,5 +42,13 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     } catch (e) {
       set({ error: String(e) })
     }
+  },
+
+  updateStatus: (id, status, error) => {
+    set({
+      songs: get().songs.map((s) =>
+        s.id === id ? { ...s, analysisStatus: status, analysisError: error ?? null } : s,
+      ),
+    })
   },
 }))

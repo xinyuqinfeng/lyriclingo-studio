@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { parseLyrics } from '../lyrics/import/parse-lyrics'
 import { detectLanguage } from '../lyrics/import/detect-language'
-import { extractLyricPairs } from '../lyrics/import/prepare-lyrics'
+import { extractLyricPairs, type LyricPair } from '../lyrics/import/prepare-lyrics'
 import { invoke } from '@tauri-apps/api/core'
 
 interface Props {
-  onCreated: (songId: string) => void
+  onCreated: (songId: string, pairs: LyricPair[]) => void
 }
 
 function extractMeta(lyrics: string, key: string): string | null {
@@ -59,7 +59,7 @@ export function NewSongDialog({ onCreated }: Props) {
         input: { title, artist, language: detected, lyrics: cleaned, lyricsRaw: lyrics },
       })
       setSaving(false)
-      onCreated(result.song.id)
+      onCreated(result.song.id, pairs)
     } catch (e) {
       setSaving(false)
       setError(String(e))

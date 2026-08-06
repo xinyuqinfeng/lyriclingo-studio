@@ -148,6 +148,14 @@ fn parse_tokens(value: Option<&serde_json::Value>) -> Result<Vec<Token>, String>
             base_form,
             base_reading: t.get("baseReading").and_then(|v| v.as_str()).map(String::from),
             reading: t.get("reading").and_then(|v| v.as_str()).map(String::from),
+            readings: t
+                .get("readings")
+                .and_then(|v| v.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .map(|x| x.as_str().unwrap_or("").to_string())
+                        .collect()
+                }),
             meaning,
             contextual_meaning: t
                 .get("contextualMeaning")

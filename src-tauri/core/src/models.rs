@@ -108,6 +108,9 @@ pub struct Token {
     pub base_reading: Option<String>,
     #[serde(default)]
     pub reading: Option<String>,
+    /// Per-character readings (one per char of `surface`) for per-kanji furigana.
+    #[serde(default)]
+    pub readings: Option<Vec<String>>,
     pub meaning: String,
     #[serde(default)]
     pub contextual_meaning: Option<String>,
@@ -148,6 +151,10 @@ pub struct Song {
     pub lyrics: String,
     #[serde(default)]
     pub lyrics_raw: Option<String>,
+    #[serde(default)]
+    pub analysis_status: Option<String>,
+    #[serde(default)]
+    pub analysis_error: Option<String>,
     pub created_at: String,
 }
 

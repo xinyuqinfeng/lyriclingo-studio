@@ -24,79 +24,74 @@ export function ProviderSettingsPage() {
   }, [loadActiveProvider])
 
   return (
-    <div style={{ maxWidth: 640, margin: '0 auto', padding: 24 }}>
+    <div className="page">
       <h1>模型设置</h1>
-      <p style={{ color: '#666' }}>
+      <p className="page-sub">
         填写任意 OpenAI 兼容 API 的 Base URL 与 Key。应用会自动读取模型列表；你的 Key
         只保存在本机系统凭据库，不会写入数据库或导出文件。
       </p>
 
-      {lastError && (
-        <div style={{ color: '#c00', background: '#fdd', padding: 8, borderRadius: 4, marginBottom: 12 }}>
-          {lastError}
-        </div>
-      )}
-      {testResult && (
-        <div style={{ color: '#060', background: '#dfd', padding: 8, borderRadius: 4, marginBottom: 12 }}>
-          {testResult}
-        </div>
-      )}
+      <div className="glass-panel" style={{ padding: 24 }}>
+        {lastError && <div className="notice notice-err">{lastError}</div>}
+        {testResult && <div className="notice notice-ok">{testResult}</div>}
 
-      <label style={{ display: 'block', marginBottom: 12 }}>
-        Base URL
-        <input
-          type="text"
-          placeholder="https://api.openai.com/v1"
-          value={baseUrl}
-          onChange={(e) => setBaseUrl(e.target.value)}
-          style={{ width: '100%', padding: 8, marginTop: 4 }}
-        />
-      </label>
-
-      <label style={{ display: 'block', marginBottom: 12 }}>
-        API Key
-        <input
-          type="password"
-          placeholder="sk-..."
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          style={{ width: '100%', padding: 8, marginTop: 4 }}
-        />
-      </label>
-
-      <button
-        onClick={testConnection}
-        disabled={testing}
-        style={{ padding: '8px 16px', marginRight: 8 }}
-      >
-        {testing ? '连接中…' : '测试连接并获取模型'}
-      </button>
-      <button onClick={clearLastError} style={{ padding: '8px 16px' }}>
-        清除状态
-      </button>
-
-      {models.length > 0 && (
-        <label style={{ display: 'block', marginTop: 16, marginBottom: 12 }}>
-          模型
+        <label style={{ display: 'block', marginBottom: 14 }}>
+          <div style={{ marginBottom: 6, color: 'var(--text-secondary)', fontSize: 13 }}>Base URL</div>
           <input
+            className="input"
+            style={{ width: '100%' }}
             type="text"
-            list="model-options"
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            placeholder="选择或手动输入模型 ID"
-            style={{ width: '100%', padding: 8, marginTop: 4 }}
+            placeholder="https://api.deepseek.com/v1"
+            value={baseUrl}
+            onChange={(e) => setBaseUrl(e.target.value)}
           />
-          <datalist id="model-options">
-            {models.map((m) => (
-              <option key={m.id} value={m.id} />
-            ))}
-          </datalist>
         </label>
-      )}
 
-      <button onClick={saveProvider} style={{ padding: '10px 20px' }}>
-        保存模型配置
-      </button>
+        <label style={{ display: 'block', marginBottom: 14 }}>
+          <div style={{ marginBottom: 6, color: 'var(--text-secondary)', fontSize: 13 }}>API Key</div>
+          <input
+            className="input"
+            style={{ width: '100%' }}
+            type="password"
+            placeholder="sk-..."
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+          />
+        </label>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn" onClick={testConnection} disabled={testing}>
+            {testing ? '连接中…' : '测试连接并获取模型'}
+          </button>
+          <button className="btn btn-ghost" onClick={clearLastError}>
+            清除状态
+          </button>
+        </div>
+
+        {models.length > 0 && (
+          <label style={{ display: 'block', marginTop: 18, marginBottom: 14 }}>
+            <div style={{ marginBottom: 6, color: 'var(--text-secondary)', fontSize: 13 }}>模型</div>
+            <input
+              className="input"
+              style={{ width: '100%' }}
+              type="text"
+              list="model-options"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              placeholder="选择或手动输入模型 ID"
+            />
+            <datalist id="model-options">
+              {models.map((m) => (
+                <option key={m.id} value={m.id} />
+              ))}
+            </datalist>
+          </label>
+        )}
+
+        <button className="btn" style={{ padding: '10px 20px' }} onClick={saveProvider}>
+          保存模型配置
+        </button>
+      </div>
     </div>
   )
 }

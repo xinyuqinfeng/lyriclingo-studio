@@ -46,6 +46,20 @@ impl Database {
                 [],
             )?;
         }
+        if applied < 3 {
+            self.conn.execute_batch(schema::MIGRATION_003)?;
+            self.conn.execute(
+                "INSERT INTO schema_migrations (version) VALUES (3)",
+                [],
+            )?;
+        }
+        if applied < 4 {
+            self.conn.execute_batch(schema::MIGRATION_004)?;
+            self.conn.execute(
+                "INSERT INTO schema_migrations (version) VALUES (4)",
+                [],
+            )?;
+        }
         Ok(())
     }
 
@@ -79,6 +93,8 @@ pub mod tests {
             language: SourceLanguage::Ja,
             lyrics: "星が降る夜\n".into(),
             lyrics_raw: None,
+            analysis_status: None,
+            analysis_error: None,
             created_at: "2026-08-05T00:00:00Z".into(),
         };
         song_repository::insert(&db, &song).expect("insert song");
@@ -97,6 +113,8 @@ pub mod tests {
             language: SourceLanguage::Ja,
             lyrics: "食べました。\n".into(),
             lyrics_raw: None,
+            analysis_status: None,
+            analysis_error: None,
             created_at: "2026-08-05T00:00:00Z".into(),
         };
         song_repository::insert(&db, &song).expect("insert song");
@@ -118,6 +136,7 @@ pub mod tests {
             base_form: "食べる".into(),
             base_reading: Some("たべる".into()),
             reading: Some("たべました".into()),
+            readings: None,
             meaning: "吃".into(),
             contextual_meaning: None,
             conjugation: Some("過去・丁寧".into()),
@@ -143,6 +162,8 @@ pub mod tests {
                     language: SourceLanguage::Ja,
                     lyrics: String::new(),
                     lyrics_raw: None,
+                    analysis_status: None,
+                    analysis_error: None,
                     created_at: String::new(),
                 },
             )
@@ -170,6 +191,7 @@ pub mod tests {
                     base_form: "食べる".into(),
                     base_reading: Some("たべる".into()),
                     reading: None,
+                    readings: None,
                     meaning: "吃".into(),
                     contextual_meaning: None,
                     conjugation: Some("過去".into()),
@@ -222,6 +244,8 @@ pub mod tests {
                 language: SourceLanguage::Ja,
                 lyrics: String::new(),
                 lyrics_raw: None,
+                analysis_status: None,
+                analysis_error: None,
                 created_at: String::new(),
             },
         )
@@ -249,6 +273,7 @@ pub mod tests {
                 base_form: "空".into(),
                 base_reading: Some("そら".into()),
                 reading: None,
+                readings: None,
                 meaning: "天空".into(),
                 contextual_meaning: None,
                 conjugation: None,
@@ -289,6 +314,8 @@ pub mod tests {
                 language: SourceLanguage::En,
                 lyrics: String::new(),
                 lyrics_raw: None,
+                analysis_status: None,
+                analysis_error: None,
                 created_at: String::new(),
             },
         )
@@ -318,6 +345,8 @@ pub mod tests {
                     language: SourceLanguage::Ja,
                     lyrics: String::new(),
                     lyrics_raw: None,
+                    analysis_status: None,
+                    analysis_error: None,
                     created_at: String::new(),
                 },
             )
@@ -345,6 +374,7 @@ pub mod tests {
                     base_form: "空".into(),
                     base_reading: Some("そら".into()),
                     reading: None,
+                    readings: None,
                     meaning: "天空".into(),
                     contextual_meaning: None,
                     conjugation: None,
@@ -429,6 +459,8 @@ pub mod tests {
                 language: SourceLanguage::Ja,
                 lyrics: String::new(),
                 lyrics_raw: None,
+                analysis_status: None,
+                analysis_error: None,
                 created_at: String::new(),
             },
         )
@@ -456,6 +488,7 @@ pub mod tests {
                 base_form: "聞こえる".into(),
                 base_reading: Some("きこえる".into()),
                 reading: None,
+                readings: None,
                 meaning: "听见".into(),
                 contextual_meaning: None,
                 conjugation: Some("過去式".into()),

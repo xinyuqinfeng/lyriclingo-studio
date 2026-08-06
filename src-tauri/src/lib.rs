@@ -39,6 +39,7 @@ pub fn run() {
             commands::get_song,
             commands::delete_song,
             analysis_cmd::analyze_song,
+            analysis_cmd::set_song_status,
             workspace_cmd::get_song_analysis,
             vocabulary_cmd::list_vocabulary,
             vocabulary_cmd::get_vocabulary,

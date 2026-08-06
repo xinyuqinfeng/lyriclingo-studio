@@ -18,6 +18,8 @@ pub struct SongListEntry {
     pub title: String,
     pub artist: String,
     pub language: String,
+    pub analysis_status: Option<String>,
+    pub analysis_error: Option<String>,
     pub created_at: String,
 }
 
@@ -55,6 +57,8 @@ pub fn create_song(db: &Database, input: CreateSongInput) -> Result<CreateSongRe
         language,
         lyrics: input.lyrics.clone(),
         lyrics_raw: input.lyrics_raw,
+        analysis_status: Some("idle".into()),
+        analysis_error: None,
         created_at,
     };
     song_repository::insert(db, &song).map_err(|e| e.to_string())?;
@@ -85,6 +89,8 @@ pub fn list_songs(db: &Database) -> Result<Vec<SongListEntry>, String> {
             title: s.title,
             artist: s.artist,
             language: s.language.to_string(),
+            analysis_status: s.analysis_status,
+            analysis_error: s.analysis_error,
             created_at: s.created_at,
         })
         .collect())

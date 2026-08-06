@@ -3,6 +3,7 @@ use crate::db;
 use lyriclingo_core::analysis::executor::AnalysisExecutor;
 use lyriclingo_core::analysis::prompt::AnalysisContext;
 use lyriclingo_core::database::repositories::line_analysis_repository;
+use lyriclingo_core::database::repositories::song_repository;
 use lyriclingo_core::database::repositories::token_repository;
 use lyriclingo_core::secrets;
 use serde::{Deserialize, Serialize};
@@ -24,6 +25,22 @@ pub struct PairInput {
     pub seq: usize,
     pub source: String,
     pub reference_translation: Option<String>,
+}
+
+/// Marks a song's analysis status (used to persist failure when the command throws).
+#[tauri::command]
+pub fn set_song_status(
+    song_id: String,
+    status: String,
+    error: Option<String>,
+    state: State<'_, DbState>,
+) -> Result<(), String> {
+    let guard = state
+        .0
+        .lock()
+        .map_err(|_| "db lock poisoned".to_string())?;
+    song_repository::set_analysis_status(&guard, &song_id, &status, error.as_deref())
+        .map_err(|e| e.to_string())
 }
 
 /// Runs analysis for a song. The frontend sends source lines (paired with their
@@ -56,6 +73,18 @@ pub async fn analyze_song(
         None => return Err("未找到已保存的 API Key，请先在设置中保存".into()),
     };
 
+    // Mark the song as analyzing.
+    {
+        let guard = state
+            .0
+            .lock()
+            .map_err(|_| "db lock poisoned".to_string())?;
+        lyriclingo_core::database::repositories::song_repository::set_analysis_status(
+            &guard, &song_id, "in_progress", None,
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
     let context = AnalysisContext {
         language,
         song_title,
@@ -71,6 +100,7 @@ pub async fn analyze_song(
 
     // Map each analysis back to a DB line by its seq.
     let mut progress: Vec<LineProgress> = Vec::new();
+    let mut all_succeeded = true;
     for (i, analysis) in analyses.iter().enumerate() {
         let seq = pairs.get(i).map(|p| p.seq);
         let matched_line = seq.and_then(|s| lines.iter().find(|l| l.seq == s as u32));
@@ -96,11 +126,27 @@ pub async fn analyze_song(
                 error: None,
             });
         } else {
+            all_succeeded = false;
             progress.push(LineProgress {
                 index: i,
                 status: "failed".into(),
                 error: Some("未能匹配到歌词行".into()),
             });
+        }
+    }
+
+    // Persist final status.
+    {
+        let guard = state
+            .0
+            .lock()
+            .map_err(|_| "db lock poisoned".to_string())?;
+        if all_succeeded {
+            song_repository::set_analysis_status(&guard, &song_id, "succeeded", None)
+                .map_err(|e| e.to_string())?;
+        } else {
+            song_repository::set_analysis_status(&guard, &song_id, "failed", Some("部分歌词行分析失败"))
+                .map_err(|e| e.to_string())?;
         }
     }
 
