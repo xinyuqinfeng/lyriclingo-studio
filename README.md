@@ -9,6 +9,15 @@
 - **隐私**：歌词与学习数据默认仅存本机；API Key 存系统凭据库，不进数据库/日志/导出文件
 - **硬盘**：不部署本地 LLM
 
+## 下载与运行（Windows 用户）
+
+在 [Releases](https://github.com/xinyuqinfeng/LyricLingo-Studio/releases) 下载，二选一：
+
+- **安装版** `LyricLingo-Studio_<版本>_x64-setup.exe`：双击安装，开始菜单出现应用。安装时若系统缺少 WebView2 Runtime 会自动补装（推荐）。
+- **免安装版** `LyricLingo-Studio-免安装版.zip`：解压后双击 `LyricLingo Studio.exe` 直接运行。
+
+**系统要求**：Windows 10 / 11（64 位）。需已安装 **Microsoft Edge WebView2 Runtime**（Windows 11 自带、Windows 10 通常随 Edge 更新自动安装；安装版会帮你自动补装）。
+
 ## 功能
 
 - 网易云等混合格式歌词自动识别（原文行 + 中文翻译行配对），中文翻译作为参考传给模型
