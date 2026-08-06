@@ -13,6 +13,7 @@ pub fn init_db(app_data_dir: PathBuf) -> Database {
 }
 
 #[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SongListEntry {
     pub id: String,
     pub title: String,

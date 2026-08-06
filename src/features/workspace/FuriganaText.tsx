@@ -77,8 +77,9 @@ function renderLine(text: string, tokens: WorkspaceToken[]): Part[] {
     const readings = t.readings ?? []
     const perChar = t.surface.split('').map((ch, i) => {
       const r = readings[i]
-      const showReading = isKanji(ch) || !!r
-      return { char: ch, reading: showReading && r ? r : undefined }
+      // Only annotate kanji characters (not kana/punctuation).
+      const showReading = isKanji(ch) && !!r
+      return { char: ch, reading: showReading ? r : undefined }
     })
 
     const readingsValid = readings.length === perChar.length && readings.some((r) => r)
