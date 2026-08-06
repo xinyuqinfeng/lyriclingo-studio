@@ -34,6 +34,8 @@ pub fn run() {
             commands::list_models,
             commands::save_provider,
             commands::get_active_provider,
+            commands::list_providers,
+            commands::get_provider_key,
             commands::remove_provider_key,
             commands::create_song,
             commands::list_songs,

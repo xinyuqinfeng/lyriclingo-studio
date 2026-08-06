@@ -77,6 +77,25 @@ pub fn active(db: &Database) -> rusqlite::Result<Option<ProviderRow>> {
     Ok(row)
 }
 
+/// Returns all saved provider profiles, oldest first.
+pub fn list_all(db: &Database) -> rusqlite::Result<Vec<ProviderRow>> {
+    let mut stmt = db.conn.prepare(
+        "SELECT id, name, base_url, model, models_path, credential_id
+         FROM provider_profiles ORDER BY rowid ASC",
+    )?;
+    let rows = stmt.query_map([], |r| {
+        Ok(ProviderRow {
+            id: r.get(0)?,
+            name: r.get(1)?,
+            base_url: r.get(2)?,
+            model: r.get(3)?,
+            models_path: r.get(4)?,
+            credential_id: r.get(5)?,
+        })
+    })?;
+    rows.collect()
+}
+
 pub fn delete(db: &Database, id: &str) -> rusqlite::Result<()> {
     db.conn.execute("DELETE FROM provider_profiles WHERE id = ?1", params![id])?;
     Ok(())

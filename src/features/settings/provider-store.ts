@@ -19,9 +19,21 @@ export interface ActiveProvider {
   hasKey: boolean
 }
 
+export interface ProviderListEntry {
+  providerId: string
+  name: string
+  baseUrl: string
+  model: string
+  maskedKey: string
+  hasKey: boolean
+}
+
 const STORAGE_KEY = 'lyriclingo.activeProviderId'
 
 interface ProviderState {
+  providers: ProviderListEntry[]
+  providerId: string | null
+  name: string
   baseUrl: string
   apiKey: string
   model: string
@@ -29,18 +41,27 @@ interface ProviderState {
   testing: boolean
   testResult: string | null
   lastError: string | null
-  providerId: string | null
+  revealedKey: string | null
+  selectProvider: (id: string | null) => void
+  setProviderId: (id: string | null) => void
+  setName: (v: string) => void
   setBaseUrl: (v: string) => void
   setApiKey: (v: string) => void
   setModel: (v: string) => void
   testConnection: () => Promise<void>
   listModels: () => Promise<void>
   saveProvider: () => Promise<void>
+  loadProviders: () => Promise<void>
   loadActiveProvider: () => Promise<ActiveProvider | null>
+  revealKey: () => Promise<void>
+  removeProvider: (id: string) => Promise<void>
   clearLastError: () => void
 }
 
 export const useProviderStore = create<ProviderState>((set, get) => ({
+  providers: [],
+  providerId: null,
+  name: '',
   baseUrl: '',
   apiKey: '',
   model: '',
@@ -48,11 +69,25 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
   testing: false,
   testResult: null,
   lastError: null,
-  providerId: null,
+  revealedKey: null,
+  setProviderId: (id) => set({ providerId: id }),
+  setName: (v) => set({ name: v }),
   setBaseUrl: (v) => set({ baseUrl: v }),
   setApiKey: (v) => set({ apiKey: v }),
   setModel: (v) => set({ model: v }),
-  clearLastError: () => set({ lastError: null, testResult: null }),
+  clearLastError: () => set({ lastError: null, testResult: null, revealedKey: null }),
+
+  selectProvider: (id) => {
+    if (!id) {
+      set({ providerId: null, name: '', baseUrl: '', apiKey: '', model: '', models: [], revealedKey: null })
+      return
+    }
+    const p = get().providers.find((x) => x.providerId === id)
+    if (p) {
+      localStorage.setItem(STORAGE_KEY, p.providerId)
+      set({ providerId: p.providerId, name: p.name, baseUrl: p.baseUrl, model: p.model, apiKey: '', revealedKey: null })
+    }
+  },
 
   testConnection: async () => {
     const { baseUrl, apiKey } = get()
@@ -63,10 +98,7 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
         { baseUrl, apiKey },
       )
       if (result.ok) {
-        set({
-          testing: false,
-          testResult: `连接成功（${result.modelsPath}，${result.modelCount} 个模型）`,
-        })
+        set({ testing: false, testResult: `连接成功（${result.modelsPath}，${result.modelCount} 个模型）` })
         await get().listModels()
       } else {
         set({ testing: false, lastError: result.error ?? '连接失败' })
@@ -90,9 +122,13 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
   },
 
   saveProvider: async () => {
-    const { baseUrl, apiKey, model } = get()
-    if (!baseUrl.trim() || !apiKey.trim() || !model.trim()) {
-      set({ lastError: '请填写 Base URL、API Key 和模型' })
+    const { baseUrl, apiKey, model, providerId, name } = get()
+    if (!baseUrl.trim() || !model.trim()) {
+      set({ lastError: '请填写 Base URL 和模型' })
+      return
+    }
+    if (!apiKey.trim() && !providerId) {
+      set({ lastError: '请填写 API Key（新供应商必须填写）' })
       return
     }
     try {
@@ -100,9 +136,21 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
         baseUrl,
         apiKey,
         model,
+        name: name || '供应商',
+        providerId,
       })
       localStorage.setItem(STORAGE_KEY, result.providerId)
-      set({ providerId: result.providerId, testResult: '已保存模型配置（Key 已存入系统凭据库）' })
+      set({ providerId: result.providerId, testResult: '已保存供应商配置（Key 已存入系统凭据库）' })
+      await get().loadProviders()
+    } catch (e) {
+      set({ lastError: String(e) })
+    }
+  },
+
+  loadProviders: async () => {
+    try {
+      const providers = await invoke<ProviderListEntry[]>('list_providers')
+      set({ providers })
     } catch (e) {
       set({ lastError: String(e) })
     }
@@ -113,16 +161,41 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
       const active = await invoke<ActiveProvider | null>('get_active_provider')
       if (active) {
         localStorage.setItem(STORAGE_KEY, active.providerId)
-        set({ baseUrl: active.baseUrl, model: active.model, providerId: active.providerId })
+        set({ providerId: active.providerId, baseUrl: active.baseUrl, model: active.model })
+        await get().loadProviders()
         return active
       }
       const savedId = localStorage.getItem(STORAGE_KEY)
       if (savedId) set({ providerId: savedId })
+      await get().loadProviders()
       return null
     } catch (e) {
-      // Any failure means we cannot trust the config; signal "not configured".
       set({ lastError: '无法读取已保存的模型配置' })
       return null
+    }
+  },
+
+  revealKey: async () => {
+    const { providerId } = get()
+    if (!providerId) return
+    try {
+      const key = await invoke<string>('get_provider_key', { providerId })
+      set({ revealedKey: key, apiKey: key })
+    } catch (e) {
+      set({ lastError: String(e) })
+    }
+  },
+
+  removeProvider: async (id: string) => {
+    try {
+      await invoke('remove_provider_key', { providerId: id })
+      if (get().providerId === id) {
+        set({ providerId: null, name: '', baseUrl: '', apiKey: '', model: '', revealedKey: null })
+        localStorage.removeItem(STORAGE_KEY)
+      }
+      await get().loadProviders()
+    } catch (e) {
+      set({ lastError: String(e) })
     }
   },
 }))

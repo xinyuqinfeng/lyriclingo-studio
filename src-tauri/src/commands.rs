@@ -85,19 +85,23 @@ pub async fn list_models(base_url: String, api_key: String) -> Result<ModelListR
 
 /// Stores a provider profile and its API key in the OS credential manager.
 /// The key is never written to the database; only a credential id is stored.
+/// If `provider_id` is provided, the existing profile (and its key) is updated.
 #[tauri::command]
 pub async fn save_provider(
     base_url: String,
     api_key: String,
     model: String,
     name: Option<String>,
+    provider_id: Option<String>,
     state: State<'_, DbState>,
 ) -> Result<SaveProviderResult, String> {
-    if api_key.trim().is_empty() {
+    if api_key.trim().is_empty() && provider_id.is_none() {
         return Err("API key is empty".into());
     }
-    let provider_id = uuid::Uuid::new_v4().to_string();
-    secrets::save_api_key(&provider_id, &api_key)?;
+    let provider_id = provider_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    if !api_key.trim().is_empty() {
+        secrets::save_api_key(&provider_id, &api_key)?;
+    }
     let credential_id = secrets::credential_id(&provider_id);
     let row = ProviderRow {
         id: provider_id.clone(),
@@ -130,6 +134,58 @@ pub struct ActiveProvider {
     pub model: String,
     /// Whether a usable API key is present in the OS credential store.
     pub has_key: bool,
+}
+
+/// A provider profile as shown in the settings list (key is masked).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderListEntry {
+    pub provider_id: String,
+    pub name: String,
+    pub base_url: String,
+    pub model: String,
+    /// Masked API key for display, e.g. "sk-••••abcd".
+    pub masked_key: String,
+    pub has_key: bool,
+}
+
+fn mask_key(key: &str) -> String {
+    if key.len() <= 8 {
+        return "••••••".to_string();
+    }
+    let keep = 4;
+    let tail = &key[key.len() - keep..];
+    format!("••••••{tail}")
+}
+
+/// Lists all saved provider profiles with masked keys.
+#[tauri::command]
+pub fn list_providers(state: State<'_, DbState>) -> Result<Vec<ProviderListEntry>, String> {
+    let guard = state
+        .0
+        .lock()
+        .map_err(|_| "db lock poisoned".to_string())?;
+    let rows = provider_repository::list_all(&guard).map_err(|e| e.to_string())?;
+    Ok(rows
+        .into_iter()
+        .map(|r| {
+            let key_opt = secrets::get_api_key(&r.id).ok();
+            ProviderListEntry {
+                provider_id: r.id,
+                name: r.name,
+                base_url: r.base_url,
+                model: r.model,
+                masked_key: key_opt.as_deref().map(mask_key).unwrap_or_default(),
+                has_key: key_opt.is_some(),
+            }
+        })
+        .collect())
+}
+
+/// Returns the full API key for a provider (revealed on user request).
+#[tauri::command]
+pub fn get_provider_key(provider_id: String) -> Result<String, String> {
+    secrets::get_api_key(&provider_id)
 }
 
 #[tauri::command]
