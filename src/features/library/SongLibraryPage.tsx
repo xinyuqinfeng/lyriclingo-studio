@@ -108,9 +108,18 @@ export function SongLibraryPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                {s.analysisStatus === 'succeeded' && (
-                  <Link to={`/export/${s.id}`} className="btn btn-ghost" style={{ padding: '4px 10px', fontSize: 13 }}>
-                    导出
+                {s.analysisStatus === 'succeeded' ? (
+                  <>
+                    <Link to={`/workspace/${s.id}`} className="btn btn-ghost" style={{ padding: '4px 10px', fontSize: 13 }}>
+                      工作台
+                    </Link>
+                    <Link to={`/export/${s.id}`} className="btn btn-ghost" style={{ padding: '4px 10px', fontSize: 13 }}>
+                      导出
+                    </Link>
+                  </>
+                ) : (
+                  <Link to={`/song/${s.id}`} className="btn btn-ghost" style={{ padding: '4px 10px', fontSize: 13 }}>
+                    {s.analysisStatus === 'in_progress' ? '分析中…' : '手动分析'}
                   </Link>
                 )}
                 <button

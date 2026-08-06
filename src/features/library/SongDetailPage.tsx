@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { AnalysisProgress } from '../lyrics/analysis/AnalysisProgress'
 import { useAnalysisStore } from '../lyrics/analysis/analysis-store'
 import { useProviderStore } from '../settings/provider-store'
 import { extractLyricPairs } from '../lyrics/import/prepare-lyrics'
 import type { SourceLanguage } from '@lyriclingo/contracts'
+import { Spinner, Notice } from '../../components/ui'
 
 interface SongDetail {
   id: string
@@ -14,15 +15,19 @@ interface SongDetail {
   language: string
   lyrics: string
   lyricsRaw?: string | null
+  analysisStatus?: string | null
+  analysisError?: string | null
 }
 
 export function SongDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [song, setSong] = useState<SongDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [noProvider, setNoProvider] = useState(false)
+  const [needConfig, setNeedConfig] = useState(false)
+  const [done, setDone] = useState(false)
   const analyzeSong = useAnalysisStore((s) => s.analyzeSong)
   const analyzing = useAnalysisStore((s) => s.analyzing)
+  const analysisError = useAnalysisStore((s) => s.error)
   const loadActiveProvider = useProviderStore((s) => s.loadActiveProvider)
   const providerId = useProviderStore((s) => s.providerId)
   const baseUrl = useProviderStore((s) => s.baseUrl)
@@ -32,13 +37,14 @@ export function SongDetailPage() {
     if (id) {
       invoke<SongDetail>('get_song', { id }).then(setSong).catch((e) => setError(String(e)))
     }
-    loadActiveProvider().then((p) => setNoProvider(!p))
+    loadActiveProvider().then((p) => setNeedConfig(!p || !p.hasKey))
   }, [id, loadActiveProvider])
 
   if (!song) return <p style={{ padding: 24 }}>{error ?? '加载中…'}</p>
   const songInfo = song
 
   async function handleAnalyze() {
+    setDone(false)
     const raw = songInfo.lyricsRaw && songInfo.lyricsRaw.trim() ? songInfo.lyricsRaw : songInfo.lyrics
     const language = songInfo.language as SourceLanguage
     const pairs = extractLyricPairs(raw, language).map((p) => ({
@@ -51,38 +57,59 @@ export function SongDetailPage() {
       return
     }
     if (!providerId) {
-      alert('请先到「模型设置」保存 API Key 与模型配置')
+      setNeedConfig(true)
       return
     }
     await analyzeSong({ songId: songInfo.id, baseUrl, model, providerId, pairs })
+    const s = useAnalysisStore.getState()
+    if (s.error == null) setDone(true)
   }
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: 24 }}>
-      <h1>{song.title}</h1>
-      {song.artist && <p style={{ color: '#888' }}>{song.artist}</p>}
-      <pre style={{ whiteSpace: 'pre-wrap', background: '#fafafa', padding: 12, borderRadius: 8 }}>
-        {song.lyrics}
-      </pre>
+    <div className="page">
+      <div style={{ marginBottom: 20 }}>
+        <Link to="/" className="btn btn-ghost" style={{ padding: '4px 12px', fontSize: 13 }}>
+          ← 返回歌曲库
+        </Link>
+      </div>
 
-      <div style={{ background: '#fafafa', border: '1px solid #eee', borderRadius: 8, padding: 16 }}>
-        <h3>分析歌词</h3>
-        {noProvider ? (
-          <p style={{ color: '#a60', marginBottom: 12 }}>
-            尚未保存模型配置。请先到「模型设置」填写并保存 Base URL / API Key / 模型。
-          </p>
+      <h1>{song.title}</h1>
+      {song.artist && <p className="page-sub">{song.artist}</p>}
+
+      <div className="glass-panel" style={{ padding: 20, marginBottom: 16 }}>
+        <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', margin: 0, color: 'var(--text-primary)', lineHeight: 1.8 }}>
+          {song.lyrics}
+        </pre>
+      </div>
+
+      <div className="glass-panel" style={{ padding: 20, marginBottom: 16 }}>
+        <h3 style={{ marginTop: 0, marginBottom: 12 }}>分析歌词</h3>
+
+        {needConfig ? (
+          <Notice kind="err">
+            尚未保存有效的模型配置。请先到{' '}
+            <Link to="/settings" style={{ color: 'var(--accent)' }}>模型设置</Link>{' '}
+            填写并保存 Base URL / API Key / 模型。
+          </Notice>
         ) : (
-          <p style={{ color: '#666', marginBottom: 12 }}>
-            将使用已保存的配置：{baseUrl} · {model}
-          </p>
+          <Notice kind="info">将使用已保存的配置：{baseUrl} · {model}</Notice>
         )}
-        <button
-          disabled={analyzing || noProvider}
-          onClick={handleAnalyze}
-          style={{ padding: '10px 20px' }}
-        >
-          {analyzing ? '分析中…' : '开始分析'}
-        </button>
+
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 14 }}>
+          <button className="btn" disabled={analyzing || needConfig} onClick={handleAnalyze} style={{ padding: '10px 24px', fontSize: 15 }}>
+            {analyzing ? <Spinner label="分析中…" /> : '开始分析'}
+          </button>
+          {done && !analysisError && (
+            <>
+              <Link to={`/workspace/${songInfo.id}`} className="btn" style={{ padding: '10px 24px', fontSize: 15 }}>
+                查看工作台 →
+              </Link>
+              <Link to={`/export/${songInfo.id}`} className="btn btn-ghost" style={{ padding: '10px 24px', fontSize: 15 }}>
+                导出学习页
+              </Link>
+            </>
+          )}
+        </div>
       </div>
 
       <AnalysisProgress />
