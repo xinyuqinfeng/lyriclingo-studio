@@ -3,6 +3,9 @@
 粘贴英/日/韩歌词，用你自备的 OpenAI 兼容 LLM 生成自然中文翻译与逐词学习卡片
 （含日语汉字振假名注音），导出「一句一页」的 PPTX 学习资料，并通过生词本
 与 SM-2 间隔重复复习辅助背词。
+<img width="1449" height="939" alt="image" src="https://github.com/user-attachments/assets/7622c5d3-fcab-4233-9bba-d5a30722b9d3" />
+<img width="1431" height="656" alt="image" src="https://github.com/user-attachments/assets/c1b6f319-abf0-4458-96ed-52061e93b011" />
+
 
 - **形态**：Windows 桌面应用（Tauri 2）
 - **模型**：用户自备 OpenAI 兼容 Base URL + API Key；支持配置多个供应商，应用读取 /models 列表后自由选模型
