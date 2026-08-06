@@ -23,7 +23,12 @@ pub fn system_prompt(context: &AnalysisContext) -> String {
 }
 
 /// Builds the user prompt containing all (source, optional reference) pairs.
-pub fn user_prompt_pairs(pairs: &[(String, Option<String>)]) -> String {
+/// `reading` is only requested for Japanese (for furigana); for other languages
+/// the model should omit it, keeping output compact and fast.
+pub fn user_prompt_pairs(
+    pairs: &[(String, Option<String>)],
+    language: SourceLanguage,
+) -> String {
     let mut numbered = String::new();
     for (i, (source, reference)) in pairs.iter().enumerate() {
         numbered.push_str(&format!("{}. {}\n", i + 1, source));
@@ -31,12 +36,22 @@ pub fn user_prompt_pairs(pairs: &[(String, Option<String>)]) -> String {
             numbered.push_str(&format!("   （参考译文：{r}）\n"));
         }
     }
+    let reading_field = match language {
+        SourceLanguage::Ja => {
+            ",\"reading\":\"该词的整词假名读音，如 眩しく→まぶしく，供注音\""
+        }
+        _ => "",
+    };
+    let reading_note = match language {
+        SourceLanguage::Ja => "\n日语词的 reading 必须给出该词的完整假名读音，供歌词上方标注注音。",
+        _ => "\n英语/韩语不要输出 reading 字段，也不要输出罗马音。",
+    };
     format!(
         "分析下面 {} 行歌词，输出一个数组，每行一个元素，顺序一一对应：\n{numbered}\n\
 每个元素格式：{{\"originalLine\":\"该行原文\",\"translation\":\"中文译文\",\"tokens\":[{{\"surface\":\"表层词\",\
-\"pos\":\"词性\",\"baseForm\":\"原型\",\"meaning\":\"中文意思\",\"reading\":\"该词的整词读音(日语，如 眩しく→まぶしく)\",\"conjugation\":\"活用(动词)\"}}]}}\n\
+\"pos\":\"词性\",\"baseForm\":\"原型\",\"meaning\":\"中文意思\"{reading_field},\"conjugation\":\"活用(动词)\"}}]}}\n\
 词性用 noun/verb/adjective/adverb/particle/pronoun/article/conjunction/interjection/preposition/determiner/auxiliary/other。\
-\n日语词的 reading 必须给出该词的完整假名读音，供歌词上方标注注音。\
+{reading_note}\
 \n标注的参考译文仅作参考，请判断是否采用或优化。尽量精简，不要多余字段。",
         pairs.len()
     )
@@ -108,11 +123,22 @@ mod tests {
             ("星が降る夜に".to_string(), Some("在星星坠落的夜晚".to_string())),
             ("走り出そう".to_string(), None),
         ];
-        let p = user_prompt_pairs(&pairs);
+        let p = user_prompt_pairs(&pairs, SourceLanguage::Ja);
         assert!(p.contains("星が降る夜に"));
         assert!(p.contains("在星星坠落的夜晚"));
         assert!(p.contains("参考译文"));
         assert!(p.contains("一个数组"));
         assert!(p.contains("2 行"));
+        // Japanese prompt requests reading for furigana.
+        assert!(p.contains("reading"));
+    }
+
+    #[test]
+    fn user_prompt_for_korean_omits_reading() {
+        let pairs = vec![("별이 떨어진다".to_string(), None)];
+        let p = user_prompt_pairs(&pairs, SourceLanguage::Ko);
+        // English/Korean prompt tells the model not to emit reading/romaji.
+        assert!(p.contains("不要输出 reading"));
+        assert!(p.contains("不要输出罗马音"));
     }
 }

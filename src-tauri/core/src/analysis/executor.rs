@@ -60,7 +60,7 @@ impl AnalysisExecutor {
         pairs: &[(String, Option<String>)],
     ) -> Result<Vec<LineAnalysis>, String> {
         let sys = system_prompt(&self.context);
-        let usr = user_prompt_pairs(pairs);
+        let usr = user_prompt_pairs(pairs, self.context.language);
         let schema = analysis_json_schema();
 
         let mut use_response_format = false;
