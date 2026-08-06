@@ -21,6 +21,20 @@ export function LyricWorkspacePage() {
     setHighlightIndex(null)
   }, [selectedIndex])
 
+  // Keyboard navigation: left/right arrows switch lyric lines.
+  useEffect(() => {
+    if (!data || data.lines.length === 0) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        select(Math.min(selectedIndex + 1, data.lines.length - 1))
+      } else if (e.key === 'ArrowLeft') {
+        select(Math.max(selectedIndex - 1, 0))
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [data, selectedIndex, select])
+
   if (loading) return <p style={{ padding: 24 }}>加载中…</p>
   if (error) return <p style={{ padding: 24, color: 'var(--danger)' }}>{error}</p>
   if (!data) return <p style={{ padding: 24 }}>暂无数据</p>
