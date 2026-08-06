@@ -1,18 +1,12 @@
 import type { WorkspaceToken } from '../workspace/workspace-store'
 
-const KANJI_RE = /[\u4e00-\u9fff\u3400-\u4dbf]/
-
-function isKanji(ch: string): boolean {
-  return KANJI_RE.test(ch)
-}
-
 /**
- * Renders a lyric line with KTV-style furigana: readings (kana) shown above
- * each kanji character via standard <ruby>/<rt>. Uses per-character `readings`
- * when present; otherwise places the whole token reading above the token.
+ * Renders a lyric line with whole-token furigana: each token's reading (kana)
+ * is placed above the entire token using a single <ruby>/<rt>. This is the
+ * standard annotation style and avoids the unreliable per-character splitting
+ * that some models produce (e.g. placing the whole reading on the first kanji).
  *
- * Each token is rendered as ONE <ruby> element containing per-character
- * base + <rt> pairs, which keeps alignment consistent and avoids nesting.
+ * Tokens whose surface is already all-kana (no kanji) get no annotation.
  */
 export function FuriganaText({
   text,
@@ -23,11 +17,7 @@ export function FuriganaText({
   tokens: WorkspaceToken[]
   fontSize?: number
 }) {
-  if (!tokens || tokens.length === 0) {
-    return <span style={{ fontSize }}>{text}</span>
-  }
-
-  const items = renderLine(text, tokens)
+  const items = buildSegments(text, tokens)
 
   return (
     <span style={{ fontSize, lineHeight: 2 }}>
@@ -35,19 +25,8 @@ export function FuriganaText({
         if (part.type === 'plain') return <span key={i}>{part.text}</span>
         return (
           <ruby key={i} style={{ rubyAlign: 'center' }}>
-            {part.chars!.map((c, j) =>
-              c.reading ? (
-                // eslint-disable-next-line react/jsx-key
-                <span key={j}>
-                  <ruby>
-                    {c.char}
-                    <rt>{c.reading}</rt>
-                  </ruby>
-                </span>
-              ) : (
-                <span key={j}>{c.char}</span>
-              ),
-            )}
+            {part.surface}
+            <rt>{part.reading}</rt>
           </ruby>
         )
       })}
@@ -55,14 +34,19 @@ export function FuriganaText({
   )
 }
 
-interface Part {
+interface Segment {
   type: 'plain' | 'token'
   text?: string
-  chars?: { char: string; reading?: string }[]
+  surface?: string
+  reading?: string
 }
 
-function renderLine(text: string, tokens: WorkspaceToken[]): Part[] {
-  const parts: Part[] = []
+function hasKanji(s: string): boolean {
+  return /[\u4e00-\u9fff\u3400-\u4dbf]/.test(s)
+}
+
+function buildSegments(text: string, tokens: WorkspaceToken[]): Segment[] {
+  const segments: Segment[] = []
   let cursor = 0
   for (const t of tokens) {
     let idx = t.start !== undefined && t.start >= cursor && t.start < text.length ? t.start : -1
@@ -71,32 +55,20 @@ function renderLine(text: string, tokens: WorkspaceToken[]): Part[] {
     }
     if (idx < 0) continue
     if (idx > cursor) {
-      parts.push({ type: 'plain', text: text.slice(cursor, idx) })
+      segments.push({ type: 'plain', text: text.slice(cursor, idx) })
     }
 
-    const readings = t.readings ?? []
-    const perChar = t.surface.split('').map((ch, i) => {
-      const r = readings[i]
-      // Only annotate kanji characters (not kana/punctuation).
-      const showReading = isKanji(ch) && !!r
-      return { char: ch, reading: showReading ? r : undefined }
-    })
-
-    const readingsValid = readings.length === perChar.length && readings.some((r) => r)
-    if (!readingsValid) {
-      if (t.reading && t.reading !== t.surface) {
-        const firstKanji = perChar.findIndex((c) => isKanji(c.char))
-        if (firstKanji >= 0) {
-          perChar[firstKanji] = { ...perChar[firstKanji], reading: t.reading }
-        }
-      }
+    const reading = t.reading ?? ''
+    const annotated = hasKanji(t.surface) && reading !== '' && reading !== t.surface
+    if (annotated) {
+      segments.push({ type: 'token', surface: t.surface, reading })
+    } else {
+      segments.push({ type: 'plain', text: t.surface })
     }
-
-    parts.push({ type: 'token', chars: perChar })
     cursor = idx + t.surface.length
   }
   if (cursor < text.length) {
-    parts.push({ type: 'plain', text: text.slice(cursor) })
+    segments.push({ type: 'plain', text: text.slice(cursor) })
   }
-  return parts
+  return segments
 }
