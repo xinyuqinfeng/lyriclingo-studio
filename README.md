@@ -6,6 +6,8 @@
 单词高亮
 <img width="1449" height="939" alt="image" src="https://github.com/user-attachments/assets/7622c5d3-fcab-4233-9bba-d5a30722b9d3" />
 <img width="1431" height="656" alt="image" src="https://github.com/user-attachments/assets/c1b6f319-abf0-4458-96ed-52061e93b011" />
+<img width="1456" height="854" alt="image" src="https://github.com/user-attachments/assets/9dfe0bcb-61ae-4974-bb65-9c89137bad51" />
+
 
 
 - **形态**：Windows 桌面应用（Tauri 2）
