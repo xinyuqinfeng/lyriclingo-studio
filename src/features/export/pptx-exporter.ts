@@ -30,6 +30,7 @@ export async function exportToPptx(opts: {
   showConjugation: boolean
   showPageNumber: boolean
   background?: string
+  backgroundOpacity?: number
   filePath?: string
 }): Promise<{ fileName: string; slideCount: number; base64: string }> {
   const pptx = new PptxGenJS()
@@ -44,10 +45,10 @@ export async function exportToPptx(opts: {
     // Warm cream background; if a user image is set, draw it full-slide (cover).
     page.background = { color: 'F7F5F0' }
     if (opts.background) {
-      const comma = opts.background.indexOf(',')
-      const data = comma >= 0 ? opts.background.slice(comma + 1) : opts.background
+      const transparency = opts.backgroundOpacity === undefined ? 0 : 100 - opts.backgroundOpacity
       page.addImage({
-        data,
+        data: opts.background, // full data URL (data:image/...;base64,...)
+        transparency,
         x: 0,
         y: 0,
         w: 10,

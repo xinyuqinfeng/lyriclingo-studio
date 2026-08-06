@@ -74,6 +74,7 @@ export function ExportPage() {
                 showConjugation: settings.showConjugation,
                 showPageNumber: settings.showPageNumber,
                 background: settings.background,
+                backgroundOpacity: settings.backgroundOpacity,
               })
               const saved = await invoke<string | null>('save_export_file', {
                 defaultName: fileName,
@@ -116,6 +117,7 @@ export function ExportPage() {
         showConjugation={settings.showConjugation}
         showPageNumber={settings.showPageNumber}
         background={settings.background}
+        backgroundOpacity={settings.backgroundOpacity}
       />
 
       {!line && <p style={{ color: '#888', marginTop: 16 }}>这首歌还没有分析结果。</p>}

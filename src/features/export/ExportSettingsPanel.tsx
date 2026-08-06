@@ -40,13 +40,27 @@ export function ExportSettingsPanel({ settings, onChange }: Props) {
         {settings.background ? '更换背景' : '上传背景'}
       </button>
       {settings.background && (
-        <button
-          className="btn btn-ghost"
-          style={{ padding: '5px 12px', fontSize: 13 }}
-          onClick={() => onChange({ ...settings, background: undefined })}
-        >
-          清除背景
-        </button>
+        <>
+          <button
+            className="btn btn-ghost"
+            style={{ padding: '5px 12px', fontSize: 13 }}
+            onClick={() => onChange({ ...settings, background: undefined })}
+          >
+            清除背景
+          </button>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)' }}>
+            背景透明度
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={settings.backgroundOpacity}
+              onChange={(e) => onChange({ ...settings, backgroundOpacity: Number(e.target.value) })}
+              style={{ width: 120 }}
+            />
+            <span style={{ minWidth: 34, color: 'var(--text-muted)' }}>{settings.backgroundOpacity}%</span>
+          </label>
+        </>
       )}
       <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
       <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>背景图自动等比铺满（cover）并居中，任意宽高比均可</span>

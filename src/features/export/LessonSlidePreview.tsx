@@ -13,12 +13,13 @@ interface Props {
   showConjugation: boolean
   showPageNumber: boolean
   background?: string
+  backgroundOpacity?: number
 }
 
 /**
  * A 16:9 lesson slide preview rendered from the same domain model used for
- * PPTX and PDF export. An optional background image fills the slide using
- * cover behavior (centered, aspect-ratio-safe).
+ * PPTX export. An optional background image fills the slide using cover
+ * behavior (centered, aspect-ratio-safe) with adjustable opacity.
  */
 export function LessonSlidePreview({
   songTitle,
@@ -31,6 +32,7 @@ export function LessonSlidePreview({
   showConjugation,
   showPageNumber,
   background,
+  backgroundOpacity = 100,
 }: Props) {
   const layout = computeLayout(line.tokens, {
     hasReading: !!line.readingText,
@@ -45,17 +47,27 @@ export function LessonSlidePreview({
         width: 960,
         height: 540,
         position: 'relative',
-        background: background ? undefined : '#fff',
-        backgroundImage: background ? `url(${background})` : undefined,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
+        background: '#f7f5f0',
         border: '1px solid var(--border-soft)',
         borderRadius: 12,
         overflow: 'hidden',
         fontFamily: 'system-ui, "Microsoft YaHei", "Hiragino Sans", sans-serif',
       }}
     >
+      {/* Background image layer (cover, adjustable opacity) */}
+      {background && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: `url(${background})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            opacity: backgroundOpacity / 100,
+          }}
+        />
+      )}
       {/* Title */}
       {showTitle && (
         <div
