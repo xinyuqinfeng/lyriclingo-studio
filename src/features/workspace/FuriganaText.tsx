@@ -68,28 +68,36 @@ function renderLine(text: string, tokens: WorkspaceToken[]): Part[] {
   const parts: Part[] = []
   let cursor = 0
   for (const t of tokens) {
-    const idx = text.indexOf(t.surface, cursor)
+    // Locate the token in the text: prefer explicit start offset when valid,
+    // otherwise fall back to indexOf from the last cursor.
+    let idx = t.start !== undefined && t.start >= cursor && t.start < text.length ? t.start : -1
+    if (idx < 0 || text.slice(idx, idx + t.surface.length) !== t.surface) {
+      idx = text.indexOf(t.surface, cursor)
+    }
     if (idx < 0) continue
     if (idx > cursor) {
       parts.push({ type: 'plain', text: text.slice(cursor, idx) })
     }
-    // Determine per-char readings.
-    const chars = t.surface.split('')
+
     const readings = t.readings ?? []
-    const perChar = chars.map((ch, i) => {
+    const perChar = t.surface.split('').map((ch, i) => {
       const r = readings[i]
-      // Only annotate kanji (or anything with a reading when array present).
       const showReading = isKanji(ch) || !!r
       return { char: ch, reading: showReading && r ? r : undefined }
     })
-    // Fallback: if no per-char readings but token has a whole reading, place it
-    // above the first kanji.
-    if (!readings.length && t.reading && t.reading !== t.surface) {
-      const firstKanji = perChar.findIndex((c) => isKanji(c.char))
-      if (firstKanji >= 0) {
-        perChar[firstKanji] = { ...perChar[firstKanji], reading: t.reading }
+
+    // If the per-char readings don't cover the surface length (or are empty),
+    // fall back to placing the whole-token reading above the token.
+    const readingsValid = readings.length === perChar.length && readings.some((r) => r)
+    if (!readingsValid) {
+      if (t.reading && t.reading !== t.surface) {
+        const firstKanji = perChar.findIndex((c) => isKanji(c.char))
+        if (firstKanji >= 0) {
+          perChar[firstKanji] = { ...perChar[firstKanji], reading: t.reading }
+        }
       }
     }
+
     parts.push({ type: 'token', chars: perChar })
     cursor = idx + t.surface.length
   }

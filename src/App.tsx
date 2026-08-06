@@ -15,7 +15,7 @@ const THEME_KEY = 'lyriclingo.theme'
 function ThemeToggle() {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem(THEME_KEY)
-    return saved === 'light' ? 'light' : 'dark'
+    return saved === 'dark' ? 'dark' : 'light'
   })
 
   useEffect(() => {

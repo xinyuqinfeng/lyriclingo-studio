@@ -119,7 +119,9 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
       const savedId = localStorage.getItem(STORAGE_KEY)
       if (savedId) set({ providerId: savedId })
       return null
-    } catch {
+    } catch (e) {
+      // Any failure means we cannot trust the config; signal "not configured".
+      set({ lastError: '无法读取已保存的模型配置' })
       return null
     }
   },

@@ -8,7 +8,7 @@ import { useAnalysisStore } from '../lyrics/analysis/analysis-store'
 import type { LyricPair } from '../lyrics/import/prepare-lyrics'
 
 export function SongLibraryPage() {
-  const { songs, loading, error, loadSongs, deleteSong } = useLibraryStore()
+  const { songs, loading, error, loadSongs, deleteSong, updateStatus } = useLibraryStore()
   const [showNew, setShowNew] = useState(false)
   const loadActiveProvider = useProviderStore((s) => s.loadActiveProvider)
   const providerId = useProviderStore((s) => s.providerId)
@@ -34,11 +34,13 @@ export function SongLibraryPage() {
     await loadSongs()
     // Auto-analyze with the saved provider config.
     if (!providerId) {
+      updateStatus(songId, 'failed', '未配置模型，请先到「模型设置」保存')
       await updateSongStatus(songId, 'failed', '未配置模型，请先到「模型设置」保存')
       return
     }
-    // Persist in_progress to DB BEFORE starting the long-running analysis so the
-    // polling refresh keeps showing the spinner instead of reverting to idle.
+    // Show spinner immediately (local state) AND persist to DB so the polling
+    // refresh keeps the spinner instead of reverting to idle.
+    updateStatus(songId, 'in_progress')
     await updateSongStatus(songId, 'in_progress')
     try {
       const seqPairs = pairs.map((p) => ({
@@ -47,8 +49,10 @@ export function SongLibraryPage() {
         referenceTranslation: p.referenceTranslation ?? null,
       }))
       await analyzeSong({ songId, baseUrl, model, providerId, pairs: seqPairs })
+      updateStatus(songId, 'succeeded')
       await loadSongs()
     } catch (e) {
+      updateStatus(songId, 'failed', String(e))
       await updateSongStatus(songId, 'failed', String(e))
     }
   }
