@@ -60,9 +60,16 @@ export function SongDetailPage() {
       setNeedConfig(true)
       return
     }
+    // Persist in_progress so the library list shows a spinner too.
+    invoke('set_song_status', { songId: songInfo.id, status: 'in_progress' }).catch(() => {})
     await analyzeSong({ songId: songInfo.id, baseUrl, model, providerId, pairs })
     const s = useAnalysisStore.getState()
-    if (s.error == null) setDone(true)
+    if (s.error == null) {
+      setDone(true)
+      invoke('set_song_status', { songId: songInfo.id, status: 'succeeded' }).catch(() => {})
+    } else {
+      invoke('set_song_status', { songId: songInfo.id, status: 'failed', error: s.error }).catch(() => {})
+    }
   }
 
   return (

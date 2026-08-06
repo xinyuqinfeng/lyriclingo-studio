@@ -5,6 +5,7 @@ use lyriclingo_core::analysis::prompt::AnalysisContext;
 use lyriclingo_core::database::repositories::line_analysis_repository;
 use lyriclingo_core::database::repositories::song_repository;
 use lyriclingo_core::database::repositories::token_repository;
+use lyriclingo_core::models::LyricLine;
 use lyriclingo_core::secrets;
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -98,12 +99,16 @@ pub async fn analyze_song(
         .collect();
     let analyses = executor.analyze_full(&pair_input).await?;
 
-    // Map each analysis back to a DB line by its seq.
+    // Map each analysis back to a DB line by ORDER (pairs order == the order of
+    // non-empty lyric lines, since create_song stored the cleaned lyrics).
+    let non_empty_lines: Vec<&LyricLine> = lines
+        .iter()
+        .filter(|l| !l.is_section_break && !l.text.trim().is_empty())
+        .collect();
     let mut progress: Vec<LineProgress> = Vec::new();
     let mut all_succeeded = true;
     for (i, analysis) in analyses.iter().enumerate() {
-        let seq = pairs.get(i).map(|p| p.seq);
-        let matched_line = seq.and_then(|s| lines.iter().find(|l| l.seq == s as u32));
+        let matched_line = non_empty_lines.get(i);
 
         if let Some(l) = matched_line {
             let guard = state
