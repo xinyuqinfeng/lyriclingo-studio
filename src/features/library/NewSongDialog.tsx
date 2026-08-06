@@ -1,10 +1,18 @@
 import { useState } from 'react'
+import type { SourceLanguage } from '@lyriclingo/contracts'
 import { parseLyrics } from '../lyrics/import/parse-lyrics'
+import { prepareSongLyrics } from '../lyrics/import/prepare-lyrics'
 import { detectLanguage } from '../lyrics/import/detect-language'
 import { invoke } from '@tauri-apps/api/core'
 
 interface Props {
   onCreated: (songId: string) => void
+}
+
+function extractMeta(lyrics: string, key: string): string | null {
+  const re = new RegExp(`^${key}\\s*[：:．.]?\\s*(.+)$`, 'im')
+  const m = lyrics.match(re)
+  return m ? m[1].trim() : null
 }
 
 export function NewSongDialog({ onCreated }: Props) {
@@ -14,6 +22,10 @@ export function NewSongDialog({ onCreated }: Props) {
   const [language, setLanguage] = useState<string>('auto')
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [info, setInfo] = useState<string | null>(null)
+
+  const detectedLanguage: SourceLanguage =
+    language === 'auto' ? detectLanguage(lyrics).language : (language as SourceLanguage)
 
   function handleLyricsChange(v: string) {
     setLyrics(v)
@@ -22,6 +34,14 @@ export function NewSongDialog({ onCreated }: Props) {
       if (detection.confident) {
         setLanguage(detection.language)
       }
+      // Auto-fill artist from metadata if the field is still empty.
+      if (!artist) {
+        const a = extractMeta(v, '作词|作詞|演唱|singer|artist')
+        if (a) setArtist(a)
+      }
+      if (!title) {
+        // no reliable auto-title; leave for the user
+      }
     } catch {
       // ignore
     }
@@ -29,11 +49,27 @@ export function NewSongDialog({ onCreated }: Props) {
 
   async function submit() {
     setError(null)
+    setInfo(null)
+    let cleaned = lyrics
     try {
       parseLyrics(lyrics) // throws if empty
+      const prepared = prepareSongLyrics(lyrics, detectedLanguage)
+      cleaned = prepared.lines
+        .map((l) => (l.isSectionBreak ? '' : l.text))
+        .join('\n')
+        .trim()
+      if (cleaned === '') {
+        setError('过滤后没有可分析的歌词行，请确认语言设置正确')
+        return
+      }
+      if (prepared.skippedMetadata + prepared.skippedTranslations > 0) {
+        setInfo(
+          `已自动过滤 ${prepared.skippedMetadata} 行元信息、${prepared.skippedTranslations} 行翻译/无关行，保留 ${prepared.lines.filter((l) => !l.isSectionBreak).length} 行歌词`,
+        )
+      }
       setSaving(true)
       const result = await invoke<{ song: { id: string } }>('create_song', {
-        input: { title, artist, language, lyrics },
+        input: { title, artist, language: detectedLanguage, lyrics: cleaned },
       })
       setSaving(false)
       onCreated(result.song.id)
@@ -49,6 +85,11 @@ export function NewSongDialog({ onCreated }: Props) {
       {error && (
         <div style={{ color: '#c00', background: '#fdd', padding: 8, borderRadius: 4, marginBottom: 12 }}>
           {error}
+        </div>
+      )}
+      {info && (
+        <div style={{ color: '#060', background: '#dfd', padding: 8, borderRadius: 4, marginBottom: 12 }}>
+          {info}
         </div>
       )}
       <label style={{ display: 'block', marginBottom: 12 }}>
@@ -81,12 +122,12 @@ export function NewSongDialog({ onCreated }: Props) {
         </select>
       </label>
       <label style={{ display: 'block', marginBottom: 12 }}>
-        歌词 *（粘贴原文，每行一句）
+        歌词 *（可粘贴网易云等平台的原文+翻译混合格式，会自动过滤元信息与翻译行）
         <textarea
           value={lyrics}
           onChange={(e) => handleLyricsChange(e.target.value)}
           rows={12}
-          placeholder={'星が降る夜に\nあなたの声が聞こえた'}
+          placeholder={'作词 : 某某\n眩しく光る太陽が目に染みる決意の朝に\n在眩目的阳光下，满怀决心的早晨'}
           style={{ width: '100%', padding: 8, marginTop: 4, fontFamily: 'monospace' }}
         />
       </label>
