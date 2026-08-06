@@ -3,6 +3,8 @@ import { invoke } from '@tauri-apps/api/core'
 import { useParams } from 'react-router-dom'
 import { AnalysisProgress } from '../lyrics/analysis/AnalysisProgress'
 import { useAnalysisStore } from '../lyrics/analysis/analysis-store'
+import { extractLyricPairs } from '../lyrics/import/prepare-lyrics'
+import type { SourceLanguage } from '@lyriclingo/contracts'
 
 interface SongDetail {
   id: string
@@ -10,6 +12,7 @@ interface SongDetail {
   artist: string
   language: string
   lyrics: string
+  lyricsRaw?: string | null
 }
 
 export function SongDetailPage() {
@@ -28,6 +31,22 @@ export function SongDetailPage() {
   }, [id])
 
   if (!song) return <p style={{ padding: 24 }}>{error ?? '加载中…'}</p>
+  const songInfo = song
+
+  async function handleAnalyze() {
+    const raw = songInfo.lyricsRaw && songInfo.lyricsRaw.trim() ? songInfo.lyricsRaw : songInfo.lyrics
+    const language = songInfo.language as SourceLanguage
+    const pairs = extractLyricPairs(raw, language).map((p) => ({
+      seq: p.seq,
+      source: p.source,
+      referenceTranslation: p.referenceTranslation ?? null,
+    }))
+    if (pairs.length === 0) {
+      alert('没有识别到可分析的歌词行')
+      return
+    }
+    await analyzeSong({ songId: songInfo.id, baseUrl, model, pairs })
+  }
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: 24 }}>
@@ -44,7 +63,7 @@ export function SongDetailPage() {
           <input
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
-            placeholder="https://api.openai.com/v1"
+            placeholder="https://api.deepseek.com/v1"
             style={{ width: '100%', padding: 8, marginTop: 4 }}
           />
         </label>
@@ -53,15 +72,13 @@ export function SongDetailPage() {
           <input
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            placeholder="gpt-4o-mini"
+            placeholder="deepseek-v4-flash"
             style={{ width: '100%', padding: 8, marginTop: 4 }}
           />
         </label>
         <button
           disabled={analyzing || !baseUrl.trim() || !model.trim()}
-          onClick={() =>
-            analyzeSong({ songId: song.id, baseUrl, model })
-          }
+          onClick={handleAnalyze}
           style={{ padding: '10px 20px' }}
         >
           {analyzing ? '分析中…' : '开始分析'}

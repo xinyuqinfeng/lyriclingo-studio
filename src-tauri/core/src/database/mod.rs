@@ -39,6 +39,13 @@ impl Database {
                 [],
             )?;
         }
+        if applied < 2 {
+            self.conn.execute_batch(schema::MIGRATION_002)?;
+            self.conn.execute(
+                "INSERT INTO schema_migrations (version) VALUES (2)",
+                [],
+            )?;
+        }
         Ok(())
     }
 
@@ -71,6 +78,7 @@ pub mod tests {
             artist: "某人".into(),
             language: SourceLanguage::Ja,
             lyrics: "星が降る夜\n".into(),
+            lyrics_raw: None,
             created_at: "2026-08-05T00:00:00Z".into(),
         };
         song_repository::insert(&db, &song).expect("insert song");
@@ -88,6 +96,7 @@ pub mod tests {
             artist: String::new(),
             language: SourceLanguage::Ja,
             lyrics: "食べました。\n".into(),
+            lyrics_raw: None,
             created_at: "2026-08-05T00:00:00Z".into(),
         };
         song_repository::insert(&db, &song).expect("insert song");
@@ -133,6 +142,7 @@ pub mod tests {
                     artist: String::new(),
                     language: SourceLanguage::Ja,
                     lyrics: String::new(),
+                    lyrics_raw: None,
                     created_at: String::new(),
                 },
             )
@@ -211,6 +221,7 @@ pub mod tests {
                 artist: String::new(),
                 language: SourceLanguage::Ja,
                 lyrics: String::new(),
+                lyrics_raw: None,
                 created_at: String::new(),
             },
         )
@@ -277,6 +288,7 @@ pub mod tests {
                 artist: String::new(),
                 language: SourceLanguage::En,
                 lyrics: String::new(),
+                lyrics_raw: None,
                 created_at: String::new(),
             },
         )
@@ -305,6 +317,7 @@ pub mod tests {
                     artist: String::new(),
                     language: SourceLanguage::Ja,
                     lyrics: String::new(),
+                    lyrics_raw: None,
                     created_at: String::new(),
                 },
             )
@@ -415,6 +428,7 @@ pub mod tests {
                 artist: String::new(),
                 language: SourceLanguage::Ja,
                 lyrics: String::new(),
+                lyrics_raw: None,
                 created_at: String::new(),
             },
         )

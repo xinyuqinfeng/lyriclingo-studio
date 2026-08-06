@@ -2,11 +2,10 @@ use crate::commands::DbState;
 use crate::db;
 use lyriclingo_core::analysis::executor::AnalysisExecutor;
 use lyriclingo_core::analysis::prompt::AnalysisContext;
-use lyriclingo_core::analysis::queue::AnalysisQueue;
 use lyriclingo_core::database::repositories::line_analysis_repository;
 use lyriclingo_core::database::repositories::token_repository;
 use lyriclingo_core::secrets;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::State;
 
 /// Represents the analysis progress for one line.
@@ -18,36 +17,38 @@ pub struct LineProgress {
     pub error: Option<String>,
 }
 
-/// Runs analysis for a song. Requires provider settings (base_url, model) and
-/// an API key (read from the OS credential store by provider_id).
+/// A source-language lyric line with an optional reference translation.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PairInput {
+    pub seq: usize,
+    pub source: String,
+    pub reference_translation: Option<String>,
+}
+
+/// Runs analysis for a song. The frontend sends source lines (paired with their
+/// pasted reference translations) plus the provider settings.
 #[tauri::command]
 pub async fn analyze_song(
     song_id: String,
     base_url: String,
     model: String,
     provider_id: Option<String>,
+    pairs: Vec<PairInput>,
     state: State<'_, DbState>,
 ) -> Result<Vec<LineProgress>, String> {
-    // Collect everything we need under a short lock, then drop the guard
-    // before any .await so the future stays Send.
-    let (song_title, artist, language, entries) = {
+    // Collect song metadata under a short lock, then drop the guard.
+    let (song_title, artist, language, lines) = {
         let guard = state
             .0
             .lock()
             .map_err(|_| "db lock poisoned".to_string())?;
         let db = &*guard;
         let song = db::get_song(db, &song_id)?;
-        let lines =
+        let lyric_lines =
             lyriclingo_core::database::repositories::lyric_line_repository::list_by_song(db, &song_id)
                 .map_err(|e| e.to_string())?;
-        // Keep real line ids for saving; skip section breaks.
-        let entries: Vec<(usize, String, String)> = lines
-            .iter()
-            .filter(|l| !l.is_section_break && !l.text.trim().is_empty())
-            .enumerate()
-            .map(|(i, l)| (i, l.id.clone(), l.text.clone()))
-            .collect();
-        (song.title.clone(), song.artist.clone(), song.language, entries)
+        (song.title.clone(), song.artist.clone(), song.language, lyric_lines)
     };
 
     let api_key = match provider_id {
@@ -62,54 +63,46 @@ pub async fn analyze_song(
     };
 
     let executor = AnalysisExecutor::new(base_url, api_key, model.clone(), context);
-    let lines_only: Vec<(usize, String)> = entries
+    let pair_input: Vec<(String, Option<String>)> = pairs
         .iter()
-        .map(|(i, _id, text)| (*i, text.clone()))
+        .map(|p| (p.source.clone(), p.reference_translation.clone()))
         .collect();
-    let queue = AnalysisQueue::new(lines_only);
+    let analyses = executor.analyze_pairs(&pair_input).await?;
 
-    let mut rx = lyriclingo_core::analysis::executor::run_queue(&executor, &queue, 1).await;
+    // Map each analysis back to a DB line by its seq.
+    let mut progress: Vec<LineProgress> = Vec::new();
+    for (i, analysis) in analyses.iter().enumerate() {
+        let seq = pairs.get(i).map(|p| p.seq);
+        let matched_line = seq.and_then(|s| lines.iter().find(|l| l.seq == s as u32));
 
-    // Drain results and persist them under a short lock per batch.
-    while let Ok((index, analysis)) = rx.try_recv() {
-        let guard = state
-            .0
-            .lock()
-            .map_err(|_| "db lock poisoned".to_string())?;
-        if let Some((_, line_id, _)) = entries.get(index) {
+        if let Some(l) = matched_line {
+            let guard = state
+                .0
+                .lock()
+                .map_err(|_| "db lock poisoned".to_string())?;
             let _ = line_analysis_repository::save(
                 &guard,
-                line_id,
+                &l.id,
                 &song_id,
                 &model,
-                "v1",
-                &analysis,
+                "v1-pair",
+                analysis,
             );
-            let _ = token_repository::upsert_tokens(&guard, line_id, &song_id, analysis.tokens);
+            let _ = token_repository::upsert_tokens(&guard, &l.id, &song_id, analysis.tokens.clone());
+            drop(guard);
+            progress.push(LineProgress {
+                index: i,
+                status: "succeeded".into(),
+                error: None,
+            });
+        } else {
+            progress.push(LineProgress {
+                index: i,
+                status: "failed".into(),
+                error: Some("未能匹配到歌词行".into()),
+            });
         }
-        drop(guard);
     }
 
-    let statuses = queue.statuses();
-    Ok(statuses
-        .into_iter()
-        .map(|t| {
-            let status = match &t.status {
-                lyriclingo_core::analysis::queue::LineStatus::Pending => "pending",
-                lyriclingo_core::analysis::queue::LineStatus::InProgress => "in_progress",
-                lyriclingo_core::analysis::queue::LineStatus::Succeeded => "succeeded",
-                lyriclingo_core::analysis::queue::LineStatus::Failed(_) => "failed",
-                lyriclingo_core::analysis::queue::LineStatus::Cancelled => "cancelled",
-            };
-            let error = match &t.status {
-                lyriclingo_core::analysis::queue::LineStatus::Failed(e) => Some(e.clone()),
-                _ => None,
-            };
-            LineProgress {
-                index: t.index,
-                status: status.to_string(),
-                error,
-            }
-        })
-        .collect())
+    Ok(progress)
 }

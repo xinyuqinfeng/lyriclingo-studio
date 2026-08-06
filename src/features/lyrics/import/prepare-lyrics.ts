@@ -7,6 +7,15 @@ export interface PreparedLyrics {
   skippedTranslations: number
 }
 
+/** A source-language lyric line optionally paired with its translation line
+ * (the NetEase-style bilingual pattern: source line, then Chinese line). */
+export interface LyricPair {
+  seq: number
+  source: string
+  /** The Chinese translation that followed this line, if present. */
+  referenceTranslation?: string
+}
+
 const METADATA_RE = /^(作词|作曲|编曲|制作|出品|原唱|翻唱|作詞|作曲|詞|曲|詞曲|artist|album|lyrics|composer|producer)\s*[：:．.]?\s*/i
 
 // Character-range matchers
@@ -83,4 +92,39 @@ export function prepareSongLyrics(raw: string, language: SourceLanguage): Prepar
   }
 
   return { lines, skippedMetadata, skippedTranslations }
+}
+
+/**
+ * Extracts source-language lyric lines in order, pairing each with the
+ * immediately following non-source line if it looks like its translation
+ * (used as a reference for the LLM). Metadata and section breaks are skipped.
+ */
+export function extractLyricPairs(raw: string, language: SourceLanguage): LyricPair[] {
+  const parsed = parseLyrics(raw)
+  const pairs: LyricPair[] = []
+  let i = 0
+  while (i < parsed.length) {
+    const line = parsed[i]
+    if (line.isSectionBreak || isMetadata(line.text)) {
+      i++
+      continue
+    }
+    if (!isSourceLine(line.text, language)) {
+      // A translation line without a preceding source line (e.g. header only) — skip.
+      i++
+      continue
+    }
+    // Look ahead for a following non-source (translation) line.
+    let referenceTranslation: string | undefined
+    let j = i + 1
+    while (j < parsed.length && (parsed[j].isSectionBreak || isMetadata(parsed[j].text))) {
+      j++
+    }
+    if (j < parsed.length && !parsed[j].isSectionBreak && !isSourceLine(parsed[j].text, language)) {
+      referenceTranslation = parsed[j].text
+    }
+    pairs.push({ seq: line.seq, source: line.text, referenceTranslation })
+    i++
+  }
+  return pairs
 }

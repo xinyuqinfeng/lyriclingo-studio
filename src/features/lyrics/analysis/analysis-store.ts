@@ -7,11 +7,23 @@ export interface LineProgress {
   error?: string | null
 }
 
+export interface AnalysisPair {
+  seq: number
+  source: string
+  referenceTranslation?: string | null
+}
+
 interface AnalysisState {
   analyzing: boolean
   progress: LineProgress[]
   error: string | null
-  analyzeSong: (params: { songId: string; baseUrl: string; model: string; providerId?: string }) => Promise<void>
+  analyzeSong: (params: {
+    songId: string
+    baseUrl: string
+    model: string
+    providerId?: string
+    pairs?: AnalysisPair[]
+  }) => Promise<void>
   clear: () => void
 }
 
@@ -20,7 +32,7 @@ export const useAnalysisStore = create<AnalysisState>((set) => ({
   progress: [],
   error: null,
 
-  analyzeSong: async ({ songId, baseUrl, model, providerId }) => {
+  analyzeSong: async ({ songId, baseUrl, model, providerId, pairs }) => {
     set({ analyzing: true, error: null, progress: [] })
     try {
       const result = await invoke<LineProgress[]>('analyze_song', {
@@ -28,6 +40,7 @@ export const useAnalysisStore = create<AnalysisState>((set) => ({
         baseUrl,
         model,
         providerId,
+        pairs,
       })
       set({ progress: result, analyzing: false })
     } catch (e) {

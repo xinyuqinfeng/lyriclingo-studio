@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { parseLyrics, type ParsedLine } from '../parse-lyrics'
-import { prepareSongLyrics } from '../prepare-lyrics'
+import { prepareSongLyrics, extractLyricPairs } from '../prepare-lyrics'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -51,6 +51,22 @@ describe('网易云歌词格式处理', () => {
     const result = prepareSongLyrics(lyrics, 'ko')
     expect(result.lines.filter((l) => !l.isSectionBreak).length).toBe(1)
     expect(result.lines[0].text).toMatch(/[\uac00-\ud7af]/)
+  })
+
+  it('extractLyricPairs 将日文行与后续中文翻译行配对', () => {
+    const lyrics =
+      '作词 : X\n眩しく光る太陽が目に染みる決意の朝に\n在眩目的阳光下，满怀决心的早晨\nどこまでも いつまでも 消えはしないよ\n无论何时何地，永远不会消失'
+    const pairs = extractLyricPairs(lyrics, 'ja')
+    expect(pairs.length).toBe(2)
+    expect(pairs[0].source).toContain('眩しく')
+    expect(pairs[0].referenceTranslation).toContain('眩目')
+    expect(pairs[1].referenceTranslation).toContain('无论何时')
+  })
+
+  it('extractLyricPairs 纯源语言时无参考翻译', () => {
+    const pairs = extractLyricPairs('眩しく光る太陽が目に染みる\n走り出そう', 'ja')
+    expect(pairs.length).toBe(2)
+    expect(pairs[0].referenceTranslation).toBeUndefined()
   })
 })
 

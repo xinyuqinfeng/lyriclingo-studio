@@ -1,0 +1,1 @@
+ALTER TABLE songs ADD COLUMN lyrics_raw TEXT NOT NULL DEFAULT '';

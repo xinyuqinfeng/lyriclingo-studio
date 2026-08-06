@@ -23,6 +23,11 @@ pub fn validate_line_analysis(raw: &serde_json::Value) -> Result<LineAnalysis, S
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
 
+    let original_line = value
+        .get("originalLine")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
     let tokens = parse_tokens(value.get("tokens"))?;
 
     let grammar_notes = value
@@ -47,10 +52,32 @@ pub fn validate_line_analysis(raw: &serde_json::Value) -> Result<LineAnalysis, S
         line_index,
         translation,
         reading_text,
+        original_line,
         tokens,
         grammar_notes,
         uncertainty,
     })
+}
+
+/// Validates and normalizes a full-song response that is an array of line analyses.
+/// Handles markdown-wrapped arrays and arrays in a string.
+pub fn validate_line_analysis_array(raw: &serde_json::Value) -> Result<Vec<LineAnalysis>, String> {
+    let value = strip_markdown_fence(raw)?;
+    let arr = value
+        .as_array()
+        .ok_or("响应必须是 JSON 数组（整首歌词分析）")?;
+    if arr.is_empty() {
+        return Err("歌词分析数组为空".into());
+    }
+    let mut out = Vec::with_capacity(arr.len());
+    for item in arr {
+        out.push(validate_line_analysis(item)?);
+    }
+    // Reindex sequentially so the UI has a stable order.
+    for (i, a) in out.iter_mut().enumerate() {
+        a.line_index = i as u32;
+    }
+    Ok(out)
 }
 
 /// If `raw` is a string containing a markdown JSON block, parse that.
@@ -140,6 +167,7 @@ mod tests {
     fn valid_raw() -> serde_json::Value {
         json!({
             "lineIndex": 0,
+            "originalLine": "星が降る夜に",
             "translation": "在繁星落下的夜里",
             "readingText": "星(ほし)が降(ふ)る夜(よる)に",
             "tokens": [
@@ -167,6 +195,25 @@ mod tests {
         assert_eq!(result.line_index, 0);
         assert_eq!(result.tokens.len(), 1);
         assert_eq!(result.tokens[0].base_form, "星");
+        assert_eq!(result.original_line.as_deref(), Some("星が降る夜に"));
+    }
+
+    #[test]
+    fn validates_array_and_reindexes() {
+        let mut second = valid_raw();
+        second["lineIndex"] = json!(5);
+        second["originalLine"] = json!("どこまでも");
+        let arr = json!([valid_raw(), second]);
+        let list = validate_line_analysis_array(&arr).expect("should validate");
+        assert_eq!(list.len(), 2);
+        assert_eq!(list[0].line_index, 0);
+        assert_eq!(list[1].line_index, 1);
+        assert_eq!(list[1].original_line.as_deref(), Some("どこまでも"));
+    }
+
+    #[test]
+    fn rejects_non_array_for_array_validator() {
+        assert!(validate_line_analysis_array(&json!({"lineIndex": 0})).is_err());
     }
 
     #[test]

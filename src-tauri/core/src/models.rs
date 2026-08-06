@@ -125,6 +125,8 @@ fn default_true() -> bool {
 #[serde(rename_all = "camelCase")]
 pub struct LineAnalysis {
     pub line_index: u32,
+    #[serde(default)]
+    pub original_line: Option<String>,
     pub translation: String,
     #[serde(default)]
     pub reading_text: Option<String>,
@@ -144,6 +146,8 @@ pub struct Song {
     pub artist: String,
     pub language: SourceLanguage,
     pub lyrics: String,
+    #[serde(default)]
+    pub lyrics_raw: Option<String>,
     pub created_at: String,
 }
 

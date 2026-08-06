@@ -4,14 +4,15 @@ use rusqlite::{params, Transaction};
 
 pub fn insert(db: &Database, song: &Song) -> rusqlite::Result<()> {
     db.conn.execute(
-        "INSERT INTO songs (id, title, artist, language, lyrics, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        "INSERT INTO songs (id, title, artist, language, lyrics, lyrics_raw, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         params![
             song.id,
             song.title,
             song.artist,
             song.language.to_string(),
             song.lyrics,
+            song.lyrics_raw.as_deref().unwrap_or(""),
             song.created_at
         ],
     )?;
@@ -20,14 +21,15 @@ pub fn insert(db: &Database, song: &Song) -> rusqlite::Result<()> {
 
 pub fn insert_tx(tx: &Transaction<'_>, song: &Song) -> rusqlite::Result<()> {
     tx.execute(
-        "INSERT INTO songs (id, title, artist, language, lyrics, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        "INSERT INTO songs (id, title, artist, language, lyrics, lyrics_raw, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         params![
             song.id,
             song.title,
             song.artist,
             song.language.to_string(),
             song.lyrics,
+            song.lyrics_raw.as_deref().unwrap_or(""),
             song.created_at
         ],
     )?;
@@ -37,17 +39,19 @@ pub fn insert_tx(tx: &Transaction<'_>, song: &Song) -> rusqlite::Result<()> {
 pub fn get(db: &Database, id: &str) -> rusqlite::Result<Song> {
     db.conn
         .query_row(
-            "SELECT id, title, artist, language, lyrics, created_at FROM songs WHERE id = ?1",
+            "SELECT id, title, artist, language, lyrics, lyrics_raw, created_at FROM songs WHERE id = ?1",
             params![id],
             |r| {
                 let language: String = r.get(3)?;
+                let raw: Option<String> = r.get(5)?;
                 Ok(Song {
                     id: r.get(0)?,
                     title: r.get(1)?,
                     artist: r.get(2)?,
                     language: language.parse().expect("valid language"),
                     lyrics: r.get(4)?,
-                    created_at: r.get(5)?,
+                    lyrics_raw: raw.filter(|s| !s.is_empty()),
+                    created_at: r.get(6)?,
                 })
             },
         )
@@ -56,16 +60,18 @@ pub fn get(db: &Database, id: &str) -> rusqlite::Result<Song> {
 pub fn list(db: &Database) -> rusqlite::Result<Vec<Song>> {
     let mut stmt = db
         .conn
-        .prepare("SELECT id, title, artist, language, lyrics, created_at FROM songs ORDER BY created_at DESC")?;
+        .prepare("SELECT id, title, artist, language, lyrics, lyrics_raw, created_at FROM songs ORDER BY created_at DESC")?;
     let rows = stmt.query_map([], |r| {
         let language: String = r.get(3)?;
+        let raw: Option<String> = r.get(5)?;
         Ok(Song {
             id: r.get(0)?,
             title: r.get(1)?,
             artist: r.get(2)?,
             language: language.parse().expect("valid language"),
             lyrics: r.get(4)?,
-            created_at: r.get(5)?,
+            lyrics_raw: raw.filter(|s| !s.is_empty()),
+            created_at: r.get(6)?,
         })
     })?;
     rows.collect()

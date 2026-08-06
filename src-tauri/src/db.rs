@@ -27,6 +27,8 @@ pub struct CreateSongInput {
     pub artist: String,
     pub language: String,
     pub lyrics: String,
+    #[serde(default)]
+    pub lyrics_raw: Option<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -52,6 +54,7 @@ pub fn create_song(db: &Database, input: CreateSongInput) -> Result<CreateSongRe
         artist: input.artist.trim().to_string(),
         language,
         lyrics: input.lyrics.clone(),
+        lyrics_raw: input.lyrics_raw,
         created_at,
     };
     song_repository::insert(db, &song).map_err(|e| e.to_string())?;
