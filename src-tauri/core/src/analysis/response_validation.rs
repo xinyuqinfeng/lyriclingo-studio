@@ -9,7 +9,7 @@ pub fn validate_line_analysis(raw: &serde_json::Value) -> Result<LineAnalysis, S
     let line_index = value
         .get("lineIndex")
         .and_then(|v| v.as_u64())
-        .ok_or("lineIndex 缺失或非法")? as u32;
+        .unwrap_or(0) as u32;
 
     let translation = value
         .get("translation")
@@ -115,14 +115,8 @@ fn parse_tokens(value: Option<&serde_json::Value>) -> Result<Vec<Token>, String>
             .filter(|s| !s.trim().is_empty())
             .ok_or("token 缺少 surface")?
             .to_string();
-        let start = t
-            .get("start")
-            .and_then(|v| v.as_u64())
-            .ok_or("token 缺少 start")? as u32;
-        let end = t
-            .get("end")
-            .and_then(|v| v.as_u64())
-            .ok_or("token 缺少 end")? as u32;
+        let start = t.get("start").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+        let end = t.get("end").and_then(|v| v.as_u64()).unwrap_or(1) as u32;
         if end <= start {
             return Err(format!("token \"{surface}\" 的 end 必须大于 start"));
         }

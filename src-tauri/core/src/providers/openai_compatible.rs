@@ -126,6 +126,17 @@ impl OpenAiCompatibleClient {
         schema: serde_json::Value,
         use_response_format: bool,
     ) -> serde_json::Value {
+        self.chat_completion_body_with_max_tokens(model, messages, schema, use_response_format, None)
+    }
+
+    pub fn chat_completion_body_with_max_tokens(
+        &self,
+        model: &str,
+        messages: Vec<(&str, &str)>,
+        schema: serde_json::Value,
+        use_response_format: bool,
+        max_tokens: Option<u32>,
+    ) -> serde_json::Value {
         let msgs: Vec<serde_json::Value> = messages
             .into_iter()
             .map(|(role, content)| json!({ "role": role, "content": content }))
@@ -134,6 +145,9 @@ impl OpenAiCompatibleClient {
             "model": model,
             "messages": msgs,
         });
+        if let Some(mt) = max_tokens {
+            body["max_tokens"] = json!(mt);
+        }
         if use_response_format {
             body["response_format"] = json!({
                 "type": "json_schema",
