@@ -29,7 +29,12 @@ export function SongLibraryPage() {
 
       {showNew && (
         <div style={{ background: '#fafafa', border: '1px solid #eee', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-          <NewSongDialog onCreated={() => setShowNew(false)} />
+          <NewSongDialog
+            onCreated={() => {
+              setShowNew(false)
+              loadSongs()
+            }}
+          />
         </div>
       )}
 

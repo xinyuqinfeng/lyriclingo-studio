@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useProviderStore } from './provider-store'
 
 export function ProviderSettingsPage() {
@@ -15,7 +16,12 @@ export function ProviderSettingsPage() {
     testConnection,
     saveProvider,
     clearLastError,
+    loadActiveProvider,
   } = useProviderStore()
+
+  useEffect(() => {
+    loadActiveProvider()
+  }, [loadActiveProvider])
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', padding: 24 }}>

@@ -12,6 +12,14 @@ export interface ModelListResult {
   modelsPath: string
 }
 
+export interface ActiveProvider {
+  providerId: string
+  baseUrl: string
+  model: string
+}
+
+const STORAGE_KEY = 'lyriclingo.activeProviderId'
+
 interface ProviderState {
   baseUrl: string
   apiKey: string
@@ -20,12 +28,14 @@ interface ProviderState {
   testing: boolean
   testResult: string | null
   lastError: string | null
+  providerId: string | null
   setBaseUrl: (v: string) => void
   setApiKey: (v: string) => void
   setModel: (v: string) => void
   testConnection: () => Promise<void>
   listModels: () => Promise<void>
   saveProvider: () => Promise<void>
+  loadActiveProvider: () => Promise<ActiveProvider | null>
   clearLastError: () => void
 }
 
@@ -37,6 +47,7 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
   testing: false,
   testResult: null,
   lastError: null,
+  providerId: null,
   setBaseUrl: (v) => set({ baseUrl: v }),
   setApiKey: (v) => set({ apiKey: v }),
   setModel: (v) => set({ model: v }),
@@ -84,10 +95,31 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
       return
     }
     try {
-      await invoke('save_provider', { baseUrl, apiKey, model })
-      set({ testResult: '已保存模型配置（Key 已存入系统凭据库）' })
+      const result = await invoke<{ providerId: string; credentialId: string }>('save_provider', {
+        baseUrl,
+        apiKey,
+        model,
+      })
+      localStorage.setItem(STORAGE_KEY, result.providerId)
+      set({ providerId: result.providerId, testResult: '已保存模型配置（Key 已存入系统凭据库）' })
     } catch (e) {
       set({ lastError: String(e) })
+    }
+  },
+
+  loadActiveProvider: async () => {
+    try {
+      const active = await invoke<ActiveProvider | null>('get_active_provider')
+      if (active) {
+        localStorage.setItem(STORAGE_KEY, active.providerId)
+        set({ baseUrl: active.baseUrl, model: active.model, providerId: active.providerId })
+        return active
+      }
+      const savedId = localStorage.getItem(STORAGE_KEY)
+      if (savedId) set({ providerId: savedId })
+      return null
+    } catch {
+      return null
     }
   },
 }))

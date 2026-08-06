@@ -32,6 +32,7 @@ pub fn run() {
             commands::test_connection,
             commands::list_models,
             commands::save_provider,
+            commands::get_active_provider,
             commands::remove_provider_key,
             commands::create_song,
             commands::list_songs,

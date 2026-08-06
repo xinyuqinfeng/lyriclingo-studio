@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { useParams } from 'react-router-dom'
 import { AnalysisProgress } from '../lyrics/analysis/AnalysisProgress'
 import { useAnalysisStore } from '../lyrics/analysis/analysis-store'
+import { useProviderStore } from '../settings/provider-store'
 import { extractLyricPairs } from '../lyrics/import/prepare-lyrics'
 import type { SourceLanguage } from '@lyriclingo/contracts'
 
@@ -18,17 +19,21 @@ interface SongDetail {
 export function SongDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [song, setSong] = useState<SongDetail | null>(null)
-  const [baseUrl, setBaseUrl] = useState('')
-  const [model, setModel] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [noProvider, setNoProvider] = useState(false)
   const analyzeSong = useAnalysisStore((s) => s.analyzeSong)
   const analyzing = useAnalysisStore((s) => s.analyzing)
+  const loadActiveProvider = useProviderStore((s) => s.loadActiveProvider)
+  const providerId = useProviderStore((s) => s.providerId)
+  const baseUrl = useProviderStore((s) => s.baseUrl)
+  const model = useProviderStore((s) => s.model)
 
   useEffect(() => {
     if (id) {
       invoke<SongDetail>('get_song', { id }).then(setSong).catch((e) => setError(String(e)))
     }
-  }, [id])
+    loadActiveProvider().then((p) => setNoProvider(!p))
+  }, [id, loadActiveProvider])
 
   if (!song) return <p style={{ padding: 24 }}>{error ?? '加载中…'}</p>
   const songInfo = song
@@ -45,7 +50,11 @@ export function SongDetailPage() {
       alert('没有识别到可分析的歌词行')
       return
     }
-    await analyzeSong({ songId: songInfo.id, baseUrl, model, pairs })
+    if (!providerId) {
+      alert('请先到「模型设置」保存 API Key 与模型配置')
+      return
+    }
+    await analyzeSong({ songId: songInfo.id, baseUrl, model, providerId, pairs })
   }
 
   return (
@@ -58,26 +67,17 @@ export function SongDetailPage() {
 
       <div style={{ background: '#fafafa', border: '1px solid #eee', borderRadius: 8, padding: 16 }}>
         <h3>分析歌词</h3>
-        <label style={{ display: 'block', marginBottom: 8 }}>
-          Base URL
-          <input
-            value={baseUrl}
-            onChange={(e) => setBaseUrl(e.target.value)}
-            placeholder="https://api.deepseek.com/v1"
-            style={{ width: '100%', padding: 8, marginTop: 4 }}
-          />
-        </label>
-        <label style={{ display: 'block', marginBottom: 8 }}>
-          模型
-          <input
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            placeholder="deepseek-v4-flash"
-            style={{ width: '100%', padding: 8, marginTop: 4 }}
-          />
-        </label>
+        {noProvider ? (
+          <p style={{ color: '#a60', marginBottom: 12 }}>
+            尚未保存模型配置。请先到「模型设置」填写并保存 Base URL / API Key / 模型。
+          </p>
+        ) : (
+          <p style={{ color: '#666', marginBottom: 12 }}>
+            将使用已保存的配置：{baseUrl} · {model}
+          </p>
+        )}
         <button
-          disabled={analyzing || !baseUrl.trim() || !model.trim()}
+          disabled={analyzing || noProvider}
           onClick={handleAnalyze}
           style={{ padding: '10px 20px' }}
         >
