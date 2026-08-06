@@ -84,10 +84,17 @@ pub fn validate_line_analysis_array(raw: &serde_json::Value) -> Result<Vec<LineA
 fn strip_markdown_fence(raw: &serde_json::Value) -> Result<serde_json::Value, String> {
     if let Some(s) = raw.as_str() {
         let text = s.trim();
-        if let Some(start) = text.find('{') {
-            if let Some(end) = text.rfind('}') {
-                let candidate = &text[start..=end];
-                return serde_json::from_str(candidate).map_err(|e| format!("解析 JSON 失败: {e}"));
+        // Extract a top-level JSON object or array from the text (handles
+        // markdown code fences / prose around the JSON).
+        if let Some(start) = text.find(['{', '[']) {
+            let open = text.as_bytes()[start];
+            let close = if open == b'{' { '}' } else { ']' };
+            if let Some(end) = text.rfind(close) {
+                if end > start {
+                    let candidate = &text[start..=end];
+                    return serde_json::from_str(candidate)
+                        .map_err(|e| format!("解析 JSON 失败: {e}"));
+                }
             }
         }
         return serde_json::from_str(text).map_err(|e| format!("解析 JSON 失败: {e}"));
@@ -214,6 +221,20 @@ mod tests {
     #[test]
     fn rejects_non_array_for_array_validator() {
         assert!(validate_line_analysis_array(&json!({"lineIndex": 0})).is_err());
+    }
+
+    #[test]
+    fn extracts_markdown_wrapped_array() {
+        let raw = json!(format!("```json\n[{}]\n```", valid_raw()));
+        let list = validate_line_analysis_array(&raw).expect("should extract array from fence");
+        assert_eq!(list.len(), 1);
+    }
+
+    #[test]
+    fn extracts_array_from_prose_string() {
+        let raw = json!(format!("好的，这是分析结果：\n[{}]", valid_raw()));
+        let list = validate_line_analysis_array(&raw).expect("should extract array from prose");
+        assert_eq!(list.len(), 1);
     }
 
     #[test]
