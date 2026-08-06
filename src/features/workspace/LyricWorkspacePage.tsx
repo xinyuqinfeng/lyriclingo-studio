@@ -10,10 +10,16 @@ export function LyricWorkspacePage() {
   const { id } = useParams<{ id: string }>()
   const { data, selectedIndex, loading, error, load, select } = useWorkspaceStore()
   const [favoritedKeys, setFavoritedKeys] = useState<Set<string>>(new Set())
+  const [highlightIndex, setHighlightIndex] = useState<number | null>(null)
 
   useEffect(() => {
     if (id) load(id)
   }, [id, load])
+
+  // Clear hover highlight when switching lines.
+  useEffect(() => {
+    setHighlightIndex(null)
+  }, [selectedIndex])
 
   if (loading) return <p style={{ padding: 24 }}>加载中…</p>
   if (error) return <p style={{ padding: 24, color: 'var(--danger)' }}>{error}</p>
@@ -82,7 +88,7 @@ export function LyricWorkspacePage() {
             <span style={{ color: 'var(--text-muted)' }}>（段落间隔）</span>
           ) : (
             <>
-              <FuriganaText text={line.line.text} tokens={line.tokens} fontSize={30} />
+              <FuriganaText text={line.line.text} tokens={line.tokens} fontSize={30} highlightIndex={highlightIndex} />
             </>
           )}
           {line.translation && (
@@ -137,6 +143,7 @@ export function LyricWorkspacePage() {
             line={line}
             onFavorite={(t, i) => handleFavorite(t, i)}
             favorited={(t, i) => isFavorited(t, i)}
+            onTokenHover={setHighlightIndex}
           />
         )}
       </aside>

@@ -7,24 +7,51 @@ import type { WorkspaceToken } from '../workspace/workspace-store'
  * that some models produce (e.g. placing the whole reading on the first kanji).
  *
  * Tokens whose surface is already all-kana (no kanji) get no annotation.
+ * When `highlightIndex` matches a token's position, that token is highlighted
+ * (used by hovering a word card in the workspace).
  */
 export function FuriganaText({
   text,
   tokens,
   fontSize = 28,
+  highlightIndex,
 }: {
   text: string
   tokens: WorkspaceToken[]
   fontSize?: number
+  highlightIndex?: number | null
 }) {
   const items = buildSegments(text, tokens)
 
   return (
     <span style={{ fontSize, lineHeight: 2 }}>
       {items.map((part, i) => {
-        if (part.type === 'plain') return <span key={i}>{part.text}</span>
+        if (part.type === 'plain') {
+          return (
+            <span
+              key={i}
+              style={
+                part.tokenIndex === highlightIndex
+                  ? { background: 'var(--accent-soft)', borderRadius: 6, padding: '0 2px', transition: 'background 0.15s' }
+                  : undefined
+              }
+            >
+              {part.text}
+            </span>
+          )
+        }
+        const active = part.tokenIndex === highlightIndex
         return (
-          <ruby key={i} style={{ rubyAlign: 'center' }}>
+          <ruby
+            key={i}
+            style={{
+              rubyAlign: 'center',
+              background: active ? 'var(--accent-soft)' : 'transparent',
+              borderRadius: 6,
+              padding: '0 3px',
+              transition: 'background 0.15s',
+            }}
+          >
             {part.surface}
             <rt>{part.reading}</rt>
           </ruby>
@@ -39,6 +66,7 @@ interface Segment {
   text?: string
   surface?: string
   reading?: string
+  tokenIndex?: number
 }
 
 function hasKanji(s: string): boolean {
@@ -48,7 +76,8 @@ function hasKanji(s: string): boolean {
 function buildSegments(text: string, tokens: WorkspaceToken[]): Segment[] {
   const segments: Segment[] = []
   let cursor = 0
-  for (const t of tokens) {
+  for (let ti = 0; ti < tokens.length; ti++) {
+    const t = tokens[ti]
     let idx = t.start !== undefined && t.start >= cursor && t.start < text.length ? t.start : -1
     if (idx < 0 || text.slice(idx, idx + t.surface.length) !== t.surface) {
       idx = text.indexOf(t.surface, cursor)
@@ -61,9 +90,9 @@ function buildSegments(text: string, tokens: WorkspaceToken[]): Segment[] {
     const reading = t.reading ?? ''
     const annotated = hasKanji(t.surface) && reading !== '' && reading !== t.surface
     if (annotated) {
-      segments.push({ type: 'token', surface: t.surface, reading })
+      segments.push({ type: 'token', surface: t.surface, reading, tokenIndex: ti })
     } else {
-      segments.push({ type: 'plain', text: t.surface })
+      segments.push({ type: 'plain', text: t.surface, tokenIndex: ti })
     }
     cursor = idx + t.surface.length
   }

@@ -20,14 +20,18 @@ export function TokenCard({
   token,
   onFavorite,
   favorited,
+  onHover,
 }: {
   token: WorkspaceToken
   onFavorite: () => void
   favorited: boolean
+  onHover: (hovering: boolean) => void
 }) {
   return (
     <div
       className="glass-panel"
+      onMouseEnter={() => onHover(true)}
+      onMouseLeave={() => onHover(false)}
       style={{
         borderRadius: 12,
         padding: 12,
@@ -35,6 +39,8 @@ export function TokenCard({
         flex: '1 1 150px',
         display: 'flex',
         flexDirection: 'column',
+        cursor: 'default',
+        transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
       }}
     >
       <div style={{ fontSize: 17, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -71,10 +77,12 @@ export function TokenGroups({
   line,
   onFavorite,
   favorited,
+  onTokenHover,
 }: {
   line: WorkspaceLine
   onFavorite: (token: WorkspaceToken, index: number) => void
   favorited: (token: WorkspaceToken, index: number) => boolean
+  onTokenHover: (index: number | null) => void
 }) {
   const [groupByPos, setGroupByPos] = useState(false)
 
@@ -92,7 +100,13 @@ export function TokenGroups({
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           {tokensWithIndex.map(({ token, index }) => (
-            <TokenCard key={index} token={token} onFavorite={() => onFavorite(token, index)} favorited={favorited(token, index)} />
+            <TokenCard
+              key={index}
+              token={token}
+              onFavorite={() => onFavorite(token, index)}
+              favorited={favorited(token, index)}
+              onHover={(h) => onTokenHover(h ? index : null)}
+            />
           ))}
         </div>
       </div>
@@ -124,7 +138,13 @@ export function TokenGroups({
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             {groups.get(pos)!.map(({ token, index }) => (
-              <TokenCard key={index} token={token} onFavorite={() => onFavorite(token, index)} favorited={favorited(token, index)} />
+              <TokenCard
+                key={index}
+                token={token}
+                onFavorite={() => onFavorite(token, index)}
+                favorited={favorited(token, index)}
+                onHover={(h) => onTokenHover(h ? index : null)}
+              />
             ))}
           </div>
         </div>
