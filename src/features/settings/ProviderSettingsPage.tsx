@@ -91,7 +91,7 @@ export function ProviderSettingsPage() {
             className="input"
             style={{ width: '100%' }}
             type="text"
-            placeholder="如：DeepSeek 官方"
+            placeholder="如：我的供应商"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
@@ -103,7 +103,7 @@ export function ProviderSettingsPage() {
             className="input"
             style={{ width: '100%' }}
             type="text"
-            placeholder="https://api.deepseek.com/v1"
+            placeholder="https://api.example.com/v1"
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
           />

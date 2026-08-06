@@ -56,7 +56,7 @@ export function ProviderSetupModal({
         <input
           className="input"
           style={{ width: '100%' }}
-          placeholder="https://api.deepseek.com/v1"
+          placeholder="https://api.example.com/v1"
           value={baseUrl}
           onChange={(e) => setBaseUrl(e.target.value)}
         />

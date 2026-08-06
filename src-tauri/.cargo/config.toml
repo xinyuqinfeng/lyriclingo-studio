@@ -1,8 +1,0 @@
-[target.x86_64-pc-windows-gnu]
-linker = "rust-lld"
-
-[env]
-CC = { value = "D:/MSYS2/mingw64/bin/gcc.exe", force = true }
-CC_x86_64_pc_windows_gnu = { value = "D:/MSYS2/mingw64/bin/gcc.exe", force = true }
-CFLAGS = { value = "-BD:/Rust/mingw-wrap", force = true }
-CFLAGS_x86_64_pc_windows_gnu = { value = "-BD:/Rust/mingw-wrap", force = true }
