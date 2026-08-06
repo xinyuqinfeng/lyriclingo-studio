@@ -50,6 +50,21 @@ npm run tauri dev
 npm run tauri build
 ```
 
+安装包输出到 `src-tauri\target\release\bundle\nsis\LyricLingo Studio_<version>_x64-setup.exe`
+（NSIS 安装程序）。可执行文件为 `src-tauri\target\release\lyriclingo-studio.exe`。
+
+## 安装后验收清单
+
+1. 首次启动：主窗口打开，显示「歌曲库」页。
+2. 「模型设置」：填写 Base URL / API Key，点击「测试连接并获取模型」，模型下拉出现列表。
+3. 导入一首日/英/韩歌词 → 打开详情页 → 运行分析 → 得到逐句翻译与词卡。
+4. 「学习工作台」：按词性查看词卡；收藏单词 → 生词本出现该词。
+5. 「复习」：收藏的词进入今日队列，可完成一次复习。
+6. 「导出学习页」：可预览每句一页排版；可导出 PPTX / 打印为 PDF。
+7. 「数据与隐私」：可创建备份、查看统计；数据仅存本机。
+8. 关闭并重开应用：歌曲与分析结果仍在（本地持久化）。
+9. API Key 不出现在任何导出文件、日志或错误信息中（已脱敏）。
+
 ## 测试
 
 ```powershell
