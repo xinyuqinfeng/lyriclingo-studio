@@ -23,6 +23,25 @@
   box-sizing: border-box;
 }
 
+/* Light theme overrides */
+[data-theme='light'] {
+  --bg-base: #f4f6fa;
+  --bg-glass: rgba(255, 255, 255, 0.72);
+  --bg-glass-strong: rgba(255, 255, 255, 0.9);
+  --border-glass: rgba(20, 30, 50, 0.08);
+  --border-soft: rgba(20, 30, 50, 0.14);
+  --text-primary: #1c2333;
+  --text-secondary: #4a5568;
+  --text-muted: #8a94a6;
+  --accent: #3b6ef0;
+  --accent-soft: rgba(59, 110, 240, 0.12);
+  --success: #0f9d6e;
+  --danger: #e5484d;
+  --warning: #d97706;
+  --shadow-glass: 0 8px 32px rgba(30, 40, 70, 0.12);
+  --shadow-card: 0 2px 12px rgba(30, 40, 70, 0.1);
+}
+
 html,
 body,
 #root {
@@ -42,6 +61,15 @@ body {
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   font-size: 14px;
+  transition: background 0.4s ease, color 0.4s ease;
+}
+
+[data-theme='light'] body,
+body[data-theme='light'] {
+  background-image:
+    radial-gradient(1200px 600px at 15% -10%, rgba(59, 110, 240, 0.12), transparent 60%),
+    radial-gradient(1000px 500px at 110% 10%, rgba(15, 157, 110, 0.08), transparent 60%),
+    radial-gradient(900px 500px at 50% 120%, rgba(130, 90, 220, 0.1), transparent 60%);
 }
 
 a {
@@ -301,4 +329,83 @@ textarea {
 
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* ---- Motion (lightweight) ---- */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.anim-in {
+  animation: fadeInUp 0.4s ease both;
+}
+
+.anim-pop {
+  animation: scaleIn 0.3s ease both;
+}
+
+/* Staggered page content reveal */
+.anim-stagger > * {
+  animation: fadeInUp 0.4s ease both;
+}
+.anim-stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.anim-stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.anim-stagger > *:nth-child(3) { animation-delay: 0.1s; }
+.anim-stagger > *:nth-child(4) { animation-delay: 0.14s; }
+.anim-stagger > *:nth-child(5) { animation-delay: 0.18s; }
+.anim-stagger > *:nth-child(6) { animation-delay: 0.22s; }
+
+/* Subtle hover lift for cards */
+.glass-panel,
+.glass {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.3s ease, border-color 0.3s ease;
+}
+.glass-panel:hover,
+.glass:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glass);
+}
+
+/* Theme toggle icon rotation on hover */
+.theme-toggle:hover svg {
+  transform: rotate(20deg);
+}
+.theme-toggle svg {
+  transition: transform 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

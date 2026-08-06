@@ -8,7 +8,7 @@ import { useAnalysisStore } from '../lyrics/analysis/analysis-store'
 import type { LyricPair } from '../lyrics/import/prepare-lyrics'
 
 export function SongLibraryPage() {
-  const { songs, loading, error, loadSongs, deleteSong, updateStatus } = useLibraryStore()
+  const { songs, loading, error, loadSongs, deleteSong } = useLibraryStore()
   const [showNew, setShowNew] = useState(false)
   const loadActiveProvider = useProviderStore((s) => s.loadActiveProvider)
   const providerId = useProviderStore((s) => s.providerId)
@@ -34,10 +34,12 @@ export function SongLibraryPage() {
     await loadSongs()
     // Auto-analyze with the saved provider config.
     if (!providerId) {
-      updateStatus(songId, 'failed', '未配置模型，请先到「模型设置」保存')
+      await updateSongStatus(songId, 'failed', '未配置模型，请先到「模型设置」保存')
       return
     }
-    updateStatus(songId, 'in_progress')
+    // Persist in_progress to DB BEFORE starting the long-running analysis so the
+    // polling refresh keeps showing the spinner instead of reverting to idle.
+    await updateSongStatus(songId, 'in_progress')
     try {
       const seqPairs = pairs.map((p) => ({
         seq: p.seq,
@@ -47,12 +49,7 @@ export function SongLibraryPage() {
       await analyzeSong({ songId, baseUrl, model, providerId, pairs: seqPairs })
       await loadSongs()
     } catch (e) {
-      updateStatus(songId, 'failed', String(e))
-      try {
-        await invokeStatus(songId, 'failed', String(e))
-      } catch {
-        // ignore
-      }
+      await updateSongStatus(songId, 'failed', String(e))
     }
   }
 
@@ -130,7 +127,11 @@ export function SongLibraryPage() {
   )
 }
 
-async function invokeStatus(songId: string, status: string, error?: string) {
+async function updateSongStatus(songId: string, status: string, error?: string) {
   const { invoke } = await import('@tauri-apps/api/core')
-  await invoke('set_song_status', { songId, status, error })
+  try {
+    await invoke('set_song_status', { songId, status, error })
+  } catch {
+    // ignore
+  }
 }

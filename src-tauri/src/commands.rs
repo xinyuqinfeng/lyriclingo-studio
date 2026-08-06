@@ -128,6 +128,8 @@ pub struct ActiveProvider {
     pub provider_id: String,
     pub base_url: String,
     pub model: String,
+    /// Whether a usable API key is present in the OS credential store.
+    pub has_key: bool,
 }
 
 #[tauri::command]
@@ -137,10 +139,14 @@ pub fn get_active_provider(state: State<'_, DbState>) -> Result<Option<ActivePro
         .lock()
         .map_err(|_| "db lock poisoned".to_string())?;
     let row = provider_repository::active(&guard).map_err(|e| e.to_string())?;
-    Ok(row.map(|r| ActiveProvider {
-        provider_id: r.id,
-        base_url: r.base_url,
-        model: r.model,
+    Ok(row.map(|r| {
+        let has_key = secrets::get_api_key(&r.id).is_ok();
+        ActiveProvider {
+            provider_id: r.id,
+            base_url: r.base_url,
+            model: r.model,
+            has_key,
+        }
     }))
 }
 

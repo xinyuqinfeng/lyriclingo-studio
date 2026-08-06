@@ -4,7 +4,7 @@ import { ProviderSetupModal } from './ProviderSetupModal'
 
 /**
  * Global provider guard: shows the setup modal on first launch if no provider
- * has been saved. Used at the app root.
+ * is configured, or if the saved provider has no usable API key.
  */
 export function ProviderGuard() {
   const loadActiveProvider = useProviderStore((s) => s.loadActiveProvider)
@@ -12,10 +12,10 @@ export function ProviderGuard() {
   const [show, setShow] = useState(false)
 
   useEffect(() => {
-    loadActiveProvider().then(() => {
+    loadActiveProvider().then((active) => {
       setChecked(true)
-      const id = useProviderStore.getState().providerId
-      if (!id) setShow(true)
+      // Show if no provider, or if the provider is missing its API key.
+      if (!active || !active.hasKey) setShow(true)
     })
   }, [loadActiveProvider])
 

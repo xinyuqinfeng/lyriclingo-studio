@@ -16,6 +16,7 @@ export interface ActiveProvider {
   providerId: string
   baseUrl: string
   model: string
+  hasKey: boolean
 }
 
 const STORAGE_KEY = 'lyriclingo.activeProviderId'

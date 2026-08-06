@@ -14,7 +14,7 @@ export function Modal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className="modal"
+        className="modal anim-pop"
         onClick={(e) => e.stopPropagation()}
         style={width ? { width } : undefined}
       >
