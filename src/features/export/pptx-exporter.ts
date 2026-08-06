@@ -75,21 +75,41 @@ export async function exportToPptx(opts: {
       line: { color: 'E6E2D8', width: 1 },
       shadow: { type: 'outer', blur: 8, offset: 3, angle: 90, color: '000000', opacity: 0.15 },
     })
-    // Lyric.
-    page.addText(line.text, {
-      x: cx + 0.2, y: cy + 0.6, w: cw - 0.4, h: 1.4,
-      fontSize: 20, bold: true, color: '3C3831', align: 'center', valign: 'middle',
+    // Lyric with furigana: each token shows its reading (small) above the
+    // surface (large), token by token. For long lines fall back to plain text.
+    const hasTokens = line.tokens.length > 0 && line.tokens.length <= 8
+    const lyricRuns: any[] = []
+    if (hasTokens) {
+      for (const token of line.tokens) {
+        const reading = token.reading && opts.showReading ? token.reading : undefined
+        if (reading) {
+          lyricRuns.push({
+            text: reading,
+            options: { fontSize: 9, color: '8A8478', breakLine: true },
+          })
+        }
+        lyricRuns.push({
+          text: token.surface,
+          options: { fontSize: 18, bold: true, color: '3C3831', breakLine: true },
+        })
+      }
+    } else {
+      lyricRuns.push({ text: line.text, options: { fontSize: 20, bold: true, color: '3C3831' } })
+    }
+    page.addText(lyricRuns, {
+      x: cx + 0.2, y: cy + 0.35, w: cw - 0.4, h: 2.1,
+      align: 'center', valign: 'middle',
     })
-    // Reading.
+    // Reading line (optional, whole-token reading as a subtitle).
     if (line.readingText && opts.showReading) {
       page.addText(line.readingText, {
-        x: cx + 0.2, y: cy + 2.0, w: cw - 0.4, h: 0.4,
-        fontSize: 10, color: 'A0988B', align: 'center',
+        x: cx + 0.2, y: cy + 2.15, w: cw - 0.4, h: 0.35,
+        fontSize: 9, color: 'A0988B', align: 'center',
       })
     }
     // Translation.
     page.addText(line.translation, {
-      x: cx + 0.3, y: cy + 2.55, w: cw - 0.6, h: 0.6,
+      x: cx + 0.3, y: cy + 2.6, w: cw - 0.6, h: 0.6,
       fontSize: 12, color: '6B6559', align: 'center', valign: 'middle',
     })
 
@@ -109,6 +129,7 @@ export async function exportToPptx(opts: {
       })
       page.addText(
         `${token.surface}${POS_LABELS[token.pos] ? `  ${POS_LABELS[token.pos]}` : ''}\n` +
+          `${opts.showReading && token.reading ? `音 ${token.reading}\n` : ''}` +
           `${token.baseForm}${opts.showConjugation && token.conjugation ? ` (${token.conjugation})` : ''}\n` +
           `${token.meaning}`,
         {

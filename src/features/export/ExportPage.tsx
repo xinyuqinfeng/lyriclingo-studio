@@ -8,11 +8,6 @@ import type { ExportSettings } from './export-settings'
 import type { LessonSlideLineInput } from './lesson-slide'
 import { useWorkspaceStore } from '../workspace/workspace-store'
 import { exportToPptx } from './pptx-exporter'
-import { buildPrintHtml } from './pdf-exporter'
-
-function b64encode(s: string): string {
-  return btoa(unescape(encodeURIComponent(s)))
-}
 
 export function ExportPage() {
   const { id } = useParams<{ id: string }>()
@@ -93,32 +88,6 @@ export function ExportPage() {
         >
           导出 PPTX
         </button>
-        <button
-          onClick={async () => {
-            try {
-              const html = buildPrintHtml({
-                songTitle: data.songTitle,
-                artist: data.artist,
-                lines: slides.map(toLineInput),
-                settings,
-              })
-              const fileName = `${data.songTitle}-歌词学习.pdf`
-              const saved = await invoke<string | null>('save_export_file', {
-                defaultName: fileName,
-                contentB64: b64encode(html),
-              })
-              if (saved) alert(`PDF 打印文件已保存到：${saved}\n\n用浏览器打开后选择打印→另存为 PDF 即可。`)
-            } catch (e) {
-              alert(String(e))
-            }
-          }}
-          style={{ padding: '10px 20px' }}
-        >
-          导出 PDF
-        </button>
-        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-          PDF：保存打印页后，用浏览器/Word 打开并「打印 → 另存为 PDF」。
-        </span>
       </div>
 
       <div style={{ display: 'flex', gap: 16, alignItems: 'center', margin: '12px 0' }}>
