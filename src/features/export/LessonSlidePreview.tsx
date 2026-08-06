@@ -1,5 +1,5 @@
 import { computeLayout } from './layout'
-import { POS_COLORS, POS_LABELS } from './lesson-slide'
+import { POS_LABELS } from './lesson-slide'
 import type { LessonSlideLineInput } from './lesson-slide'
 
 interface Props {
@@ -12,11 +12,13 @@ interface Props {
   showReading: boolean
   showConjugation: boolean
   showPageNumber: boolean
+  background?: string
 }
 
 /**
  * A 16:9 lesson slide preview rendered from the same domain model used for
- * PPTX and PDF export.
+ * PPTX and PDF export. An optional background image fills the slide using
+ * cover behavior (centered, aspect-ratio-safe).
  */
 export function LessonSlidePreview({
   songTitle,
@@ -28,6 +30,7 @@ export function LessonSlidePreview({
   showReading,
   showConjugation,
   showPageNumber,
+  background,
 }: Props) {
   const layout = computeLayout(line.tokens, {
     hasReading: !!line.readingText,
@@ -42,106 +45,115 @@ export function LessonSlidePreview({
         width: 960,
         height: 540,
         position: 'relative',
-        background: '#fff',
-        border: '1px solid #ccc',
-        borderRadius: 8,
+        background: background ? undefined : '#fff',
+        backgroundImage: background ? `url(${background})` : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        border: '1px solid var(--border-soft)',
+        borderRadius: 12,
         overflow: 'hidden',
         fontFamily: 'system-ui, "Microsoft YaHei", "Hiragino Sans", sans-serif',
       }}
     >
+      {/* Title */}
       {showTitle && (
-        <div style={{ position: 'absolute', ...layout.titleRect, fontSize: 20, fontWeight: 600 }}>
-          {songTitle}
-          {artist && <span style={{ fontWeight: 400, color: '#888', fontSize: 14, marginLeft: 8 }}>{artist}</span>}
-        </div>
-      )}
-
-      {/* Lyric */}
-      <div
-        style={{
-          position: 'absolute',
-          ...layout.lyricRect,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 30,
-          fontWeight: 600,
-          textAlign: 'center',
-        }}
-      >
-        {line.text}
-      </div>
-
-      {/* Reading */}
-      {line.readingText && (
         <div
           style={{
             position: 'absolute',
-            ...layout.readingRect,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 16,
-            color: '#888',
+            left: 40,
+            right: 40,
+            top: 24,
+            fontSize: 20,
+            fontWeight: 700,
             textAlign: 'center',
+            color: '#2c2a26',
+            textShadow: background ? '0 1px 4px rgba(255,255,255,0.9)' : undefined,
           }}
         >
-          {line.readingText}
+          {songTitle}
+          {artist && <span style={{ fontWeight: 400, color: '#555', fontSize: 14, marginLeft: 8 }}>{artist}</span>}
         </div>
       )}
 
-      {/* Translation */}
+      {/* Central lyric card */}
       <div
         style={{
           position: 'absolute',
-          ...layout.translationRect,
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 420,
+          maxHeight: 250,
+          background: 'rgba(255,255,255,0.92)',
+          borderRadius: 14,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+          border: '1px solid #e8e4da',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 20,
-          color: '#333',
+          padding: '20px 24px',
           textAlign: 'center',
-          borderTop: '1px dashed #ddd',
+          zIndex: 2,
+          overflow: 'hidden',
         }}
       >
-        {line.translation}
+        <div style={{ fontSize: 24, fontWeight: 700, color: '#2c2a26', lineHeight: 1.6 }}>{line.text}</div>
+        {line.readingText && (
+          <div style={{ fontSize: 12, color: '#8a8478', marginTop: 4 }}>{line.readingText}</div>
+        )}
+        <div
+          style={{
+            marginTop: 12,
+            paddingTop: 10,
+            borderTop: '1px dashed #ddd6ca',
+            fontSize: 15,
+            color: '#5c574e',
+            width: '100%',
+          }}
+        >
+          {line.translation}
+        </div>
       </div>
 
-      {/* Token cards */}
+      {/* Orbiting word cards */}
       {layout.tokenRects.map(({ token, rect }, i) => (
         <div
           key={i}
           style={{
             position: 'absolute',
             ...rect,
-            background: POS_COLORS[token.pos] ?? '#eee',
-            borderRadius: 8,
-            padding: 10,
-            border: `2px solid ${token.confirmed ? '#ccc' : '#e8a100'}`,
-            fontSize: 13,
+            background: 'rgba(255,255,255,0.95)',
+            borderRadius: 10,
+            padding: 8,
+            border: `1.5px solid ${token.confirmed ? '#d8d3c8' : '#e8a100'}`,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+            fontSize: 12,
+            color: '#2c2a26',
+            zIndex: 1,
+            overflow: 'hidden',
           }}
         >
-          <div style={{ fontWeight: 600, fontSize: 15 }}>
+          <div style={{ fontWeight: 700, fontSize: 13 }}>
             {token.surface}
-            <span style={{ fontSize: 11, color: '#666', marginLeft: 6 }}>
+            <span style={{ fontSize: 10, color: '#8a8478', marginLeft: 4 }}>
               {POS_LABELS[token.pos] ?? token.pos}
             </span>
           </div>
-          {showReading && token.reading && (
-            <div style={{ color: '#888', fontSize: 12 }}>{token.reading}</div>
-          )}
+          {showReading && token.reading && <div style={{ color: '#8a8478', fontSize: 10 }}>{token.reading}</div>}
           <div style={{ marginTop: 2 }}>
             <strong>{token.baseForm}</strong>
             {showConjugation && token.conjugation && (
-              <span style={{ color: '#a00', fontSize: 11, marginLeft: 6 }}>{token.conjugation}</span>
+              <span style={{ color: '#a65', fontSize: 10, marginLeft: 4 }}>{token.conjugation}</span>
             )}
           </div>
-          <div style={{ marginTop: 2, color: '#333' }}>{token.meaning}</div>
+          <div style={{ marginTop: 2, color: '#5c574e' }}>{token.meaning}</div>
         </div>
       ))}
 
       {showPageNumber && (
-        <div style={{ position: 'absolute', bottom: 8, right: 16, fontSize: 12, color: '#aaa' }}>
+        <div style={{ position: 'absolute', bottom: 8, right: 16, fontSize: 12, color: '#8a8478' }}>
           {pageNumber} / {totalPages}
         </div>
       )}

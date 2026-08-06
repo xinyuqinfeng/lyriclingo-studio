@@ -2,6 +2,7 @@
 pub mod analysis_cmd;
 pub mod commands;
 pub mod db;
+pub mod export_cmd;
 pub mod maintenance_cmd;
 pub mod review_cmd;
 pub mod vocabulary_cmd;
@@ -54,6 +55,7 @@ pub fn run() {
             maintenance_cmd::maintenance_stats,
             maintenance_cmd::delete_all_data,
             maintenance_cmd::open_data_dir,
+            export_cmd::save_export_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

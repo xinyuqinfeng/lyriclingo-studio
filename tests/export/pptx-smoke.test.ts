@@ -1,19 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { mkdtempSync, rmSync, existsSync, statSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { describe, it, expect } from 'vitest'
 import { exportToPptx } from '../../src/features/export/pptx-exporter'
 import type { LessonSlideLineInput } from '../../src/features/export/lesson-slide'
-
-let dir: string
-
-beforeAll(() => {
-  dir = mkdtempSync(join(tmpdir(), 'lyric-pptx-'))
-})
-
-afterAll(() => {
-  rmSync(dir, { recursive: true, force: true })
-})
 
 const twoLines: LessonSlideLineInput[] = [
   {
@@ -40,8 +27,7 @@ const twoLines: LessonSlideLineInput[] = [
 ]
 
 describe('PPTX export smoke test', () => {
-  it('generates a non-empty pptx with one slide per line', async () => {
-    const out = join(dir, 'test.pptx')
+  it('generates base64 pptx bytes with one slide per line', async () => {
     const result = await exportToPptx({
       songTitle: '夜空',
       artist: '测试',
@@ -50,15 +36,15 @@ describe('PPTX export smoke test', () => {
       showReading: true,
       showConjugation: true,
       showPageNumber: true,
-      filePath: out,
     })
     expect(result.slideCount).toBe(2)
-    expect(existsSync(out)).toBe(true)
-    expect(statSync(out).size).toBeGreaterThan(1000)
+    expect(result.base64.length).toBeGreaterThan(1000)
+    // Base64 decodes to a zip (PK header) with slide data.
+    const bin = atob(result.base64)
+    expect(bin.startsWith('PK')).toBe(true)
   })
 
   it('handles zero lines gracefully', async () => {
-    const out = join(dir, 'empty.pptx')
     const result = await exportToPptx({
       songTitle: '空',
       artist: '',
@@ -67,9 +53,8 @@ describe('PPTX export smoke test', () => {
       showReading: true,
       showConjugation: true,
       showPageNumber: true,
-      filePath: out,
     })
     expect(result.slideCount).toBe(0)
-    expect(existsSync(out)).toBe(true)
+    expect(result.base64.length).toBeGreaterThan(100)
   })
 })

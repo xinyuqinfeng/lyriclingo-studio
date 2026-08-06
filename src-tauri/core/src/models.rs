@@ -51,6 +51,9 @@ pub enum PartOfSpeech {
     Article,
     Conjunction,
     Interjection,
+    Preposition,
+    Determiner,
+    Auxiliary,
     Other,
 }
 
@@ -66,6 +69,9 @@ impl PartOfSpeech {
             PartOfSpeech::Article => "article",
             PartOfSpeech::Conjunction => "conjunction",
             PartOfSpeech::Interjection => "interjection",
+            PartOfSpeech::Preposition => "preposition",
+            PartOfSpeech::Determiner => "determiner",
+            PartOfSpeech::Auxiliary => "auxiliary",
             PartOfSpeech::Other => "other",
         }
     }
@@ -90,6 +96,9 @@ impl std::str::FromStr for PartOfSpeech {
             "article" => Ok(PartOfSpeech::Article),
             "conjunction" => Ok(PartOfSpeech::Conjunction),
             "interjection" => Ok(PartOfSpeech::Interjection),
+            "preposition" => Ok(PartOfSpeech::Preposition),
+            "determiner" => Ok(PartOfSpeech::Determiner),
+            "auxiliary" => Ok(PartOfSpeech::Auxiliary),
             "other" => Ok(PartOfSpeech::Other),
             other => Err(format!("unknown part of speech: {other}")),
         }

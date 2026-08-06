@@ -29,8 +29,9 @@ export async function exportToPptx(opts: {
   showReading: boolean
   showConjugation: boolean
   showPageNumber: boolean
+  background?: string
   filePath?: string
-}): Promise<{ fileName: string; slideCount: number }> {
+}): Promise<{ fileName: string; slideCount: number; base64: string }> {
   const pptx = new PptxGenJS()
   pptx.defineLayout({ name: 'LYRIC_16x9', width: 10, height: 5.625 })
   pptx.layout = 'LYRIC_16x9'
@@ -40,8 +41,20 @@ export async function exportToPptx(opts: {
     const line = opts.lines[i]
     const page = pptx.addSlide()
 
-    // Warm cream background.
+    // Warm cream background; if a user image is set, draw it full-slide (cover).
     page.background = { color: 'F7F5F0' }
+    if (opts.background) {
+      const comma = opts.background.indexOf(',')
+      const data = comma >= 0 ? opts.background.slice(comma + 1) : opts.background
+      page.addImage({
+        data,
+        x: 0,
+        y: 0,
+        w: 10,
+        h: 5.625,
+        sizing: { type: 'cover', w: 10, h: 5.625, x: 0, y: 0 },
+      })
+    }
 
     if (opts.showTitle) {
       page.addText(
@@ -113,6 +126,7 @@ export async function exportToPptx(opts: {
   }
 
   const fileName = opts.filePath ?? `${opts.songTitle}-歌词学习.pptx`
-  await pptx.writeFile({ fileName })
-  return { fileName, slideCount: opts.lines.length }
+  // Generate the file as base64 bytes; the caller persists it via the save dialog.
+  const b64 = (await pptx.write({ outputType: 'base64' })) as string
+  return { fileName, slideCount: opts.lines.length, base64: b64 }
 }

@@ -89,20 +89,29 @@ pub struct DueCard {
     pub language: String,
 }
 
-pub fn due_cards(db: &Database, limit: Option<i64>) -> rusqlite::Result<Vec<DueCard>> {
+pub fn due_cards(
+    db: &Database,
+    limit: Option<i64>,
+    language: Option<&str>,
+) -> rusqlite::Result<Vec<DueCard>> {
     let mut sql = String::from(
         "SELECT rc.id, rc.vocabulary_id, rc.card_type, ve.base_form, ve.meaning, ve.base_reading, ve.language
          FROM review_cards rc
          JOIN vocabulary_entries ve ON ve.id = rc.vocabulary_id
-         WHERE rc.due_at <= ?1
-         ORDER BY rc.due_at ASC",
+         WHERE rc.due_at <= ?1",
     );
+    let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![Box::new(chrono::Utc::now().to_rfc3339())];
+    if let Some(lang) = language {
+        sql.push_str(" AND ve.language = ?");
+        params.push(Box::new(lang.to_string()));
+    }
+    sql.push_str(" ORDER BY rc.due_at ASC");
     if let Some(l) = limit {
         sql.push_str(&format!(" LIMIT {l}"));
     }
     let mut stmt = db.conn.prepare(&sql)?;
-    let now = chrono::Utc::now().to_rfc3339();
-    let rows = stmt.query_map(params![now], |r| {
+    let param_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
+    let rows = stmt.query_map(param_refs.as_slice(), |r| {
         Ok(DueCard {
             card_id: r.get(0)?,
             vocabulary_id: r.get(1)?,

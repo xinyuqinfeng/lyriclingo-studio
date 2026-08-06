@@ -11,6 +11,9 @@ export const partsOfSpeech = [
   'article',
   'conjunction',
   'interjection',
+  'preposition',
+  'determiner',
+  'auxiliary',
   'other',
 ] as const
 export type PartOfSpeech = (typeof partsOfSpeech)[number]

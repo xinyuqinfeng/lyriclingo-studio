@@ -23,17 +23,19 @@ pub struct ReviewStats {
     pub mastered: i64,
 }
 
-/// Lists review cards due today (with an optional limit for new cards).
+/// Lists review cards due today for the given language (with an optional limit).
 #[tauri::command]
 pub fn get_due_cards(
     limit: Option<i64>,
+    language: Option<String>,
     state: State<'_, DbState>,
 ) -> Result<Vec<DueCardDto>, String> {
     let guard = state
         .0
         .lock()
         .map_err(|_| "db lock poisoned".to_string())?;
-    let cards = review_repository::due_cards(&guard, limit).map_err(|e| e.to_string())?;
+    let cards = review_repository::due_cards(&guard, limit, language.as_deref())
+        .map_err(|e| e.to_string())?;
     Ok(cards
         .into_iter()
         .map(|c: DueCard| DueCardDto {
@@ -48,14 +50,19 @@ pub fn get_due_cards(
         .collect())
 }
 
-/// Returns review statistics.
+/// Returns review statistics for a language (or all when language is None).
 #[tauri::command]
-pub fn review_stats(state: State<'_, DbState>) -> Result<ReviewStats, String> {
+pub fn review_stats(
+    language: Option<String>,
+    state: State<'_, DbState>,
+) -> Result<ReviewStats, String> {
     let guard = state
         .0
         .lock()
         .map_err(|_| "db lock poisoned".to_string())?;
-    let today_due = review_repository::today_due_count(&guard).map_err(|e| e.to_string())?;
+    let today_due = review_repository::due_cards(&guard, None, language.as_deref())
+        .map(|c| c.len() as i64)
+        .unwrap_or(0);
     let mastered = review_repository::mastered_count(&guard).map_err(|e| e.to_string())?;
     Ok(ReviewStats { today_due, mastered })
 }

@@ -24,6 +24,8 @@ interface ReviewState {
   stats: ReviewStats
   loading: boolean
   error: string | null
+  language: string | null
+  setLanguage: (lang: string | null) => void
   load: () => Promise<void>
   reveal: () => void
   rate: (rating: Rating) => Promise<void>
@@ -37,12 +39,19 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
   stats: { todayDue: 0, mastered: 0 },
   loading: false,
   error: null,
+  language: null,
+
+  setLanguage: (lang) => {
+    set({ language: lang })
+    get().load()
+  },
 
   load: async () => {
     set({ loading: true, error: null })
     try {
-      const cards = await invoke<DueCard[]>('get_due_cards', { limit: 20 })
-      const stats = await invoke<ReviewStats>('review_stats')
+      const language = get().language
+      const cards = await invoke<DueCard[]>('get_due_cards', { limit: 20, language })
+      const stats = await invoke<ReviewStats>('review_stats', { language })
       set({ cards, stats, currentIndex: 0, revealed: false, loading: false })
     } catch (e) {
       set({ loading: false, error: String(e) })

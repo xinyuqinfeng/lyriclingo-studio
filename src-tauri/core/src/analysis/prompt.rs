@@ -35,7 +35,7 @@ pub fn user_prompt_pairs(pairs: &[(String, Option<String>)]) -> String {
         "分析下面 {} 行歌词，输出一个数组，每行一个元素，顺序一一对应：\n{numbered}\n\
 每个元素格式：{{\"originalLine\":\"该行原文\",\"translation\":\"中文译文\",\"tokens\":[{{\"surface\":\"表层词\",\
 \"pos\":\"词性\",\"baseForm\":\"原型\",\"meaning\":\"中文意思\",\"reading\":\"该词的整词读音(日语，如 眩しく→まぶしく)\",\"conjugation\":\"活用(动词)\"}}]}}\n\
-词性用 noun/verb/adjective/adverb/particle/pronoun/article/conjunction/interjection/other。\
+词性用 noun/verb/adjective/adverb/particle/pronoun/article/conjunction/interjection/preposition/determiner/auxiliary/other。\
 \n日语词的 reading 必须给出该词的完整假名读音，供歌词上方标注注音。\
 \n标注的参考译文仅作参考，请判断是否采用或优化。尽量精简，不要多余字段。",
         pairs.len()
@@ -55,7 +55,7 @@ pub fn line_analysis_json_schema() -> serde_json::Value {
                     "type": "object",
                     "properties": {
                         "surface": { "type": "string" },
-                        "pos": { "type": "string", "enum": ["noun","verb","adjective","adverb","particle","pronoun","article","conjunction","interjection","other"] },
+                        "pos": { "type": "string", "enum": ["noun","verb","adjective","adverb","particle","pronoun","article","conjunction","interjection","preposition","determiner","auxiliary","other"] },
                         "baseForm": { "type": "string" },
                         "meaning": { "type": "string" },
                         "reading": { "type": "string" },

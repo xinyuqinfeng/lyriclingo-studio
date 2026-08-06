@@ -11,6 +11,9 @@ const POS_LABEL: Record<string, string> = {
   article: '冠词',
   conjunction: '连词',
   interjection: '感叹词',
+  preposition: '介词',
+  determiner: '限定词',
+  auxiliary: '助动词',
   other: '其他',
 }
 

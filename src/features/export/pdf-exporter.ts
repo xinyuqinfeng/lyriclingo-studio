@@ -18,6 +18,9 @@ export function buildPrintHtml(opts: {
   const pages = opts.lines.map((line, i) =>
     renderPageHtml(line, i + 1, opts.lines.length, opts.songTitle, opts.artist, opts.settings),
   )
+  const bgCss = opts.settings.background
+    ? `.page.bg { background: url("${opts.settings.background}") center / cover no-repeat #f7f5f0; }\n`
+    : ''
   return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -38,6 +41,7 @@ export function buildPrintHtml(opts: {
     display: flex;
     flex-direction: column;
   }
+  ${bgCss}
   .page:last-child { page-break-after: auto; }
 
   .title {
@@ -137,7 +141,7 @@ function renderPageHtml(
     .join('')
 
   return `
-  <div class="page">
+  <div class="page${settings.background ? ' bg' : ''}">
     ${settings.showTitle ? `<div class="title">${escapeHtml(songTitle)}<span class="artist">${escapeHtml(artist)}</span></div>` : ''}
     <div class="stage">
       ${connectors}

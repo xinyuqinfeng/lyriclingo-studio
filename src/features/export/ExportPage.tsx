@@ -1,23 +1,32 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { invoke } from '@tauri-apps/api/core'
 import { LessonSlidePreview } from './LessonSlidePreview'
 import { ExportSettingsPanel } from './ExportSettingsPanel'
-import { DEFAULT_EXPORT_SETTINGS } from './export-settings'
+import { loadSavedSettings, persistSettings } from './export-settings'
 import type { ExportSettings } from './export-settings'
 import type { LessonSlideLineInput } from './lesson-slide'
 import { useWorkspaceStore } from '../workspace/workspace-store'
 import { exportToPptx } from './pptx-exporter'
 import { buildPrintHtml } from './pdf-exporter'
 
+function b64encode(s: string): string {
+  return btoa(unescape(encodeURIComponent(s)))
+}
+
 export function ExportPage() {
   const { id } = useParams<{ id: string }>()
   const { data, loading, error, load } = useWorkspaceStore()
-  const [settings, setSettings] = useState<ExportSettings>(DEFAULT_EXPORT_SETTINGS)
+  const [settings, setSettings] = useState<ExportSettings>(() => loadSavedSettings())
   const [currentPage, setCurrentPage] = useState(0)
 
   useEffect(() => {
     if (id) load(id)
   }, [id, load])
+
+  useEffect(() => {
+    persistSettings(settings)
+  }, [settings])
 
   if (loading) return <p style={{ padding: 24 }}>加载中…</p>
   if (error) return <p style={{ padding: 24, color: '#c00' }}>{error}</p>
@@ -61,7 +70,7 @@ export function ExportPage() {
         <button
           onClick={async () => {
             try {
-              await exportToPptx({
+              const { fileName, base64 } = await exportToPptx({
                 songTitle: data.songTitle,
                 artist: data.artist,
                 lines: slides.map(toLineInput),
@@ -69,8 +78,13 @@ export function ExportPage() {
                 showReading: settings.showReading,
                 showConjugation: settings.showConjugation,
                 showPageNumber: settings.showPageNumber,
+                background: settings.background,
               })
-              alert('PPTX 已生成并保存到下载目录')
+              const saved = await invoke<string | null>('save_export_file', {
+                defaultName: fileName,
+                contentB64: base64,
+              })
+              if (saved) alert(`PPTX 已保存到：${saved}`)
             } catch (e) {
               alert(String(e))
             }
@@ -80,27 +94,30 @@ export function ExportPage() {
           导出 PPTX
         </button>
         <button
-          onClick={() => {
-            const html = buildPrintHtml({
-              songTitle: data.songTitle,
-              artist: data.artist,
-              lines: slides.map(toLineInput),
-              settings,
-            })
-            const win = window.open('', '_blank', 'width=900,height=1100')
-            if (win) {
-              win.document.write(html)
-              win.document.close()
-            } else {
-              alert('浏览器拦截了弹窗，请允许弹出窗口后重试')
+          onClick={async () => {
+            try {
+              const html = buildPrintHtml({
+                songTitle: data.songTitle,
+                artist: data.artist,
+                lines: slides.map(toLineInput),
+                settings,
+              })
+              const fileName = `${data.songTitle}-歌词学习.pdf`
+              const saved = await invoke<string | null>('save_export_file', {
+                defaultName: fileName,
+                contentB64: b64encode(html),
+              })
+              if (saved) alert(`PDF 打印文件已保存到：${saved}\n\n用浏览器打开后选择打印→另存为 PDF 即可。`)
+            } catch (e) {
+              alert(String(e))
             }
           }}
           style={{ padding: '10px 20px' }}
         >
-          导出 PDF（打印）
+          导出 PDF
         </button>
-        <span style={{ fontSize: 13, color: '#888' }}>
-          PDF：在新窗口打印，选择「Microsoft Print to PDF」即可保存
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          PDF：保存打印页后，用浏览器/Word 打开并「打印 → 另存为 PDF」。
         </span>
       </div>
 
@@ -129,6 +146,7 @@ export function ExportPage() {
         showReading={settings.showReading}
         showConjugation={settings.showConjugation}
         showPageNumber={settings.showPageNumber}
+        background={settings.background}
       />
 
       {!line && <p style={{ color: '#888', marginTop: 16 }}>这首歌还没有分析结果。</p>}

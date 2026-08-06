@@ -37,6 +37,9 @@ export const POS_COLORS: Record<string, string> = {
   article: '#fce4ec',
   conjunction: '#f1f8e9',
   interjection: '#fff3e0',
+  preposition: '#e0f2f1',
+  determiner: '#fff8e1',
+  auxiliary: '#fce4ec',
   other: '#eceff1',
 }
 
@@ -50,5 +53,8 @@ export const POS_LABELS: Record<string, string> = {
   article: '冠词',
   conjunction: '连词',
   interjection: '感叹词',
+  preposition: '介词',
+  determiner: '限定词',
+  auxiliary: '助动词',
   other: '其他',
 }

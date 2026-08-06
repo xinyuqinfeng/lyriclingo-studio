@@ -3,7 +3,7 @@ import { useReviewStore } from './review-store'
 import type { Rating } from './sm2'
 
 export function ReviewPage() {
-  const { cards, currentIndex, revealed, stats, loading, error, load, reveal, rate, reset } =
+  const { cards, currentIndex, revealed, stats, loading, error, load, reveal, rate, reset, language, setLanguage } =
     useReviewStore()
 
   useEffect(() => {
@@ -15,6 +15,13 @@ export function ReviewPage() {
 
   const card = cards[currentIndex]
 
+  const langOptions = [
+    { value: null, label: '全部语言' },
+    { value: 'ja', label: '日语' },
+    { value: 'en', label: '英语' },
+    { value: 'ko', label: '韩语' },
+  ]
+
   return (
     <div className="page">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -24,6 +31,18 @@ export function ReviewPage() {
             今日待复习：{stats.todayDue} · 已掌握：{stats.mastered}
           </p>
         </div>
+        <select
+          className="input"
+          value={language ?? ''}
+          onChange={(e) => setLanguage(e.target.value || null)}
+          style={{ minWidth: 120 }}
+        >
+          {langOptions.map((o) => (
+            <option key={o.value ?? 'all'} value={o.value ?? ''}>
+              {o.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {!card ? (

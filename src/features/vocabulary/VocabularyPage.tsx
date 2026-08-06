@@ -29,11 +29,22 @@ export function VocabularyPage() {
       <p className="page-sub">收藏的单词会自动汇总到这里</p>
 
       <div className="glass-panel" style={{ padding: 14, marginBottom: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <select
+          className="input"
+          value={filters.language ?? ''}
+          onChange={(e) => setFilters({ ...filters, language: e.target.value || undefined })}
+          style={{ minWidth: 110 }}
+        >
+          <option value="">全部语言</option>
+          <option value="ja">日语</option>
+          <option value="en">英语</option>
+          <option value="ko">韩语</option>
+        </select>
         <input
           className="input"
           placeholder="搜索词或释义…"
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-          style={{ flex: 1, minWidth: 180 }}
+          style={{ flex: 1, minWidth: 160 }}
         />
         <select
           className="input"
