@@ -76,41 +76,35 @@ export async function exportToPptx(opts: {
       line: { color: 'E6E2D8', width: 1 },
       shadow: { type: 'outer', blur: 8, offset: 3, angle: 90, color: '000000', opacity: 0.15 },
     })
-    // Lyric with furigana: each token shows its reading (small) above the
-    // surface (large), token by token. For long lines fall back to plain text.
-    const hasTokens = line.tokens.length > 0 && line.tokens.length <= 8
-    const lyricRuns: any[] = []
+    // Lyric rendered horizontally; kanji tokens carry their reading as
+    // 「表面(假名)」 inline (e.g. 眩しく(まぶしく) 光る(ひかる)).
+    const hasTokens = line.tokens.length > 0
+    let lyricText = line.text
     if (hasTokens) {
-      for (const token of line.tokens) {
-        const reading = token.reading && opts.showReading ? token.reading : undefined
-        if (reading) {
-          lyricRuns.push({
-            text: reading,
-            options: { fontSize: 9, color: '8A8478', breakLine: true },
-          })
+      const parts = line.tokens.map((token) => {
+        const reading = opts.showReading ? token.reading : undefined
+        if (reading && reading !== token.surface) {
+          return `${token.surface}(${reading})`
         }
-        lyricRuns.push({
-          text: token.surface,
-          options: { fontSize: 18, bold: true, color: '3C3831', breakLine: true },
-        })
-      }
-    } else {
-      lyricRuns.push({ text: line.text, options: { fontSize: 20, bold: true, color: '3C3831' } })
+        return token.surface
+      })
+      lyricText = parts.join(' ')
     }
-    page.addText(lyricRuns, {
-      x: cx + 0.2, y: cy + 0.35, w: cw - 0.4, h: 2.1,
-      align: 'center', valign: 'middle',
+    page.addText(lyricText, {
+      x: cx + 0.2, y: cy + 0.35, w: cw - 0.4, h: 1.5,
+      fontSize: 18, bold: true, color: '3C3831', align: 'center', valign: 'middle',
+      wrap: true,
     })
-    // Reading line (optional, whole-token reading as a subtitle).
+    // Reading line (optional, whole-line reading as a subtitle).
     if (line.readingText && opts.showReading) {
       page.addText(line.readingText, {
-        x: cx + 0.2, y: cy + 2.15, w: cw - 0.4, h: 0.35,
+        x: cx + 0.2, y: cy + 1.85, w: cw - 0.4, h: 0.35,
         fontSize: 9, color: 'A0988B', align: 'center',
       })
     }
     // Translation.
     page.addText(line.translation, {
-      x: cx + 0.3, y: cy + 2.6, w: cw - 0.6, h: 0.6,
+      x: cx + 0.3, y: cy + 2.3, w: cw - 0.6, h: 0.6,
       fontSize: 12, color: '6B6559', align: 'center', valign: 'middle',
     })
 
